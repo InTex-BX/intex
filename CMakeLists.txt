@@ -43,3 +43,4 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include_directories(common)
 
 add_subdirectory(common)
+add_subdirectory(groundstation)
