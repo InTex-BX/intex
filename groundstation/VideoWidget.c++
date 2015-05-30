@@ -65,8 +65,6 @@ VideoWidget::VideoWidget(QWidget *parent)
   palette.setColor(backgroundRole(), QColor(0, 255, 0));
   setPalette(palette);
   setAutoFillBackground(true);
-  palette.setColor(backgroundRole(), QColor(255, 0, 0));
-  parent->setPalette(palette);
 }
 
 void VideoWidget::mouseDoubleClickEvent(QMouseEvent *event) {
