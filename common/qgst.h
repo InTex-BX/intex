@@ -18,3 +18,4 @@
 #include <QGst/Pipeline>
 #include <QGst/Structure>
 
+#include <gst/gst.h>
