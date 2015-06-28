@@ -139,25 +139,51 @@ Control::Control(QWidget *parent)
   auto controlWidget = new QWidget;
   auto controlLayout = new QHBoxLayout(controlWidget);
 
+  auto bitrateLabel = new QLabel;
+  bitrateLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+
   auto bitrateSlider = new QSlider(Qt::Horizontal);
-  bitrateSlider->setMinimum(1000);
-  bitrateSlider->setMaximum(1000 * 1000);
-  bitrateSlider->setSingleStep(1000);
-  bitrateSlider->setPageStep(10 * 1000);
+  bitrateSlider->setMinimum(1);
+  bitrateSlider->setMaximum(1000);
+  bitrateSlider->setSingleStep(1);
+  bitrateSlider->setPageStep(10);
   bitrateSlider->setSizePolicy(QSizePolicy::MinimumExpanding,
                                QSizePolicy::Fixed);
 
-  auto bitrateLabel = new QLabel;
-  bitrateLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-  connect(bitrateSlider, &QSlider::sliderMoved, bitrateLabel,
-          static_cast<void (QLabel::*)(int)>(&QLabel::setNum));
-  connect(bitrateSlider, &QSlider::valueChanged, bitrateLabel,
-          static_cast<void (QLabel::*)(int)>(&QLabel::setNum));
-  bitrateSlider->setValue(400 * 1000);
+  auto bitrateUpdate = [bitrateLabel](int bitrate) {
+    bitrateLabel->setText(QString("Bitrate: %1 kBit/s").arg(bitrate));
+  };
+  connect(bitrateSlider, &QSlider::sliderMoved, bitrateUpdate);
+  connect(bitrateSlider, &QSlider::valueChanged, bitrateUpdate);
+
+  bitrateSlider->setValue(800);
   bitrateSlider->setTracking(false);
 
-  controlLayout->addWidget(bitrateSlider);
+  auto splitLabel = new QLabel;
+  bitrateLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+
+  auto splitSlider = new QSlider(Qt::Horizontal);
+  splitSlider->setMinimum(1);
+  splitSlider->setMaximum(100);
+  splitSlider->setSingleStep(1);
+  splitSlider->setPageStep(10);
+  splitSlider->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+
+  auto splitUpdate = [splitLabel](int split) {
+    splitLabel->setText(
+        QString("Split: %1/%2")
+            .arg(QString::number(split), QString::number(100 - split)));
+  };
+  connect(splitSlider, &QSlider::sliderMoved, splitUpdate);
+  connect(splitSlider, &QSlider::valueChanged, splitUpdate);
+
+  splitSlider->setValue(50);
+  splitSlider->setTracking(false);
+
   controlLayout->addWidget(bitrateLabel);
+  controlLayout->addWidget(bitrateSlider);
+  controlLayout->addWidget(splitLabel);
+  controlLayout->addWidget(splitSlider);
 
   centralLayout->addWidget(controlWidget);
   centralLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::MinimumExpanding,
