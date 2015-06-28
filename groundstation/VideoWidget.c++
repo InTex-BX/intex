@@ -28,7 +28,7 @@ public:
   }
   ~Container();
 
-  QSize sizeHint() const { return size_; }
+  QSize sizeHint() const override { return size_; }
   void setVideoSink(const QGst::ElementPtr &sink_) {
     if (!sink_) {
       size_ = minSize;
