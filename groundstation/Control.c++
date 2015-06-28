@@ -36,6 +36,7 @@ struct Control::Impl {
 
   QShortcut switchWidgets_;
   QShortcut switchWindows_;
+  QShortcut showNormal_;
 
   Impl(QWidget *parent)
       : leftWindow(parent), rightWindow(parent),
@@ -43,7 +44,8 @@ struct Control::Impl {
         videoControl(*leftVideoWidget, *rightVideoWidget,
                      *leftWindow.videoWidget(), *rightWindow.videoWidget()),
         switchWidgets_(tr("Ctrl+X"), parent, SLOT(switchWidgets())),
-        switchWindows_(tr("Ctrl+Shift+X"), parent, SLOT(switchWindows())) {
+        switchWindows_(tr("Ctrl+Shift+X"), parent, SLOT(switchWindows())),
+        showNormal_(tr("Esc"), parent, SLOT(showNormal())) {
     leftWindow.setWindowTitle("InTex Live Feed 0");
     rightWindow.setWindowTitle("InTex Live Feed 1");
   }
