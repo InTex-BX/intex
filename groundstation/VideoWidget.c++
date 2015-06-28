@@ -18,7 +18,6 @@ public:
     auto layout = new QVBoxLayout(this);
     layout->addWidget(widget_);
     layout->setSpacing(0);
-    layout->setMargin(0);
     layout->setContentsMargins(0, 0, 0, 0);
     QPalette palette = this->palette();
     palette.setColor(backgroundRole(), QColor(0, 0, 255));
@@ -59,7 +58,6 @@ VideoWidget::VideoWidget(QWidget *parent)
   auto layout = new AspectRatioLayout(this);
   layout->addWidget(container);
   layout->setSpacing(0);
-  layout->setMargin(0);
   layout->setContentsMargins(0, 0, 0, 0);
   QPalette palette = this->palette();
   palette.setColor(backgroundRole(), QColor(0, 255, 0));
