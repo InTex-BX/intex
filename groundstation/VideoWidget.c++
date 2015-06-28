@@ -24,11 +24,11 @@ public:
     palette.setColor(backgroundRole(), QColor(0, 0, 255));
     setPalette(palette);
     setAutoFillBackground(true);
+    setMinimumSize(minSize);
   }
   ~Container();
 
   QSize sizeHint() const { return size_; }
-  QSize minimumSize() const { return minSize; }
   void setVideoSink(const QGst::ElementPtr &sink_) {
     if (!sink_) {
       size_ = minSize;
