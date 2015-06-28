@@ -142,10 +142,10 @@ VideoStreamControl::VideoStreamControl(VideoWidget &leftWidget,
       windowSwitcher(std::make_unique<SinkSwitcher>(pipeline0, pipeline1,
                                                     "lwindow", "rwindow")) {
 
-  leftWindow.setVideoSink(get(Type::Window, Side::Left));
-  leftWidget.setVideoSink(get(Type::Widget, Side::Left));
-  rightWindow.setVideoSink(get(Type::Window, Side::Right));
-  rightWidget.setVideoSink(get(Type::Widget, Side::Right));
+  leftWindow.setVideoSink(get(Type::Window, Stream::Left));
+  leftWidget.setVideoSink(get(Type::Widget, Stream::Left));
+  rightWindow.setVideoSink(get(Type::Window, Stream::Right));
+  rightWidget.setVideoSink(get(Type::Widget, Stream::Right));
 
   pipeline0->setState(QGst::StatePlaying);
   pipeline1->setState(QGst::StatePlaying);
@@ -156,16 +156,16 @@ VideoStreamControl::~VideoStreamControl() {
   pipeline1->setState(QGst::StateNull);
 }
 
-QGst::ElementPtr VideoStreamControl::get(enum Type type, enum Side side) {
+QGst::ElementPtr VideoStreamControl::get(enum Type type, enum Stream side) {
   std::ostringstream os;
   QGst::PipelinePtr pipeline;
 
   switch (side) {
-  case Side::Left:
+  case Stream::Left:
     os << "l";
     pipeline = pipeline0;
     break;
-  case Side::Right:
+  case Stream::Right:
     os << "r";
     pipeline = pipeline1;
     break;
@@ -189,5 +189,33 @@ QGst::ElementPtr VideoStreamControl::get(enum Type type, enum Side side) {
   return sink;
 }
 
+QGst::PipelinePtr VideoStreamControl::get(const enum Stream side) {
+  switch (side) {
+  case Stream::Left:
+    return pipeline0;
+  case Stream::Right:
+    return pipeline1;
+  }
+}
+
 void VideoStreamControl::switchWidgets() { (*widgetSwitcher)(); }
 void VideoStreamControl::switchWindows() { (*windowSwitcher)(); }
+
+template <typename Func>
+static void modify_source(QGst::PipelinePtr pipeline, Func &&modification) {
+  auto src = pipeline->getElementByName("udpsrc0");
+  auto ret = src->setState(QGst::StateNull);
+  if (ret == QGst::StateChangeFailure)
+    qCritical() << "Error changing state";
+  modification(src);
+  ret = src->setState(QGst::StatePlaying);
+  if (ret == QGst::StateChangeFailure)
+    qCritical() << "Error changing state";
+}
+
+void VideoStreamControl::setPort(const enum Stream side, const int port) {
+  qDebug() << "Setting port to" << port;
+  modify_source(get(side), [port](QGst::ElementPtr src) {
+    src->setProperty("port", static_cast<gint>(port));
+  });
+}

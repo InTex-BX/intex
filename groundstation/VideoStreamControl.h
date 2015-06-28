@@ -11,6 +11,13 @@
 class SinkSwitcher;
 
 class VideoStreamControl {
+public:
+  enum class Stream {
+    Left,
+    Right,
+  };
+
+private:
   QGst::PipelinePtr pipeline0;
   QGst::PipelinePtr pipeline1;
 
@@ -19,11 +26,8 @@ class VideoStreamControl {
     Window,
   };
 
-  enum class Side {
-    Left,
-    Right,
-  };
-  QGst::ElementPtr get(enum Type, enum Side);
+  QGst::ElementPtr get(enum Type, enum Stream);
+  QGst::PipelinePtr get(enum Stream);
   std::unique_ptr<SinkSwitcher> widgetSwitcher;
   std::unique_ptr<SinkSwitcher> windowSwitcher;
 
@@ -35,5 +39,6 @@ public:
 
   void switchWidgets();
   void switchWindows();
+  void setPort(const enum Stream side, const int port);
 };
 

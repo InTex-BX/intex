@@ -21,6 +21,8 @@ private Q_SLOTS:
   void switchWidgets();
   void switchWindows();
   void onBitrateChanged(int bitrate);
+  void setPort0(const int port);
+  void setPort1(const int port);
 
 private:
   void setupPipelines();
