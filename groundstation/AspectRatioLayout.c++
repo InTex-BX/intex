@@ -77,7 +77,7 @@ QLayoutItem *AspectRatioLayout::takeAt(int index) {
 }
 
 int AspectRatioLayout::count() const { return items.size(); }
-bool AspectRatioLayout::hasHeightForWidth() const { return true; }
+bool AspectRatioLayout::hasHeightForWidth() const { return false; }
 int AspectRatioLayout::heightForWidth(int width) const {
   int height = 0;
   for (auto &&item : items) {
