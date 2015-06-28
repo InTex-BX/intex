@@ -103,7 +103,8 @@ Control::Control(QWidget *parent)
 
   auto centralLayout = new QVBoxLayout(centralWidget);
 
-  auto videoWidget = new QWidget;
+  auto videoWidget = new QFrame;
+  videoWidget->setFrameShape(QFrame::StyledPanel);
   auto videoLayout = new QHBoxLayout(videoWidget);
 
   auto leftVideo = new QFrame;
@@ -136,7 +137,8 @@ Control::Control(QWidget *parent)
 
   centralLayout->addWidget(videoWidget);
 
-  auto controlWidget = new QWidget;
+  auto controlWidget = new QFrame;
+  controlWidget->setFrameShape(QFrame::StyledPanel);
   auto controlLayout = new QHBoxLayout(controlWidget);
 
   auto bitrateLabel = new QLabel;
