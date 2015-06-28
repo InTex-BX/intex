@@ -40,5 +40,6 @@ public:
   void switchWidgets();
   void switchWindows();
   void setPort(const enum Stream side, const int port);
+  void setAddress(const QString &address);
 };
 

@@ -219,3 +219,12 @@ void VideoStreamControl::setPort(const enum Stream side, const int port) {
     src->setProperty("port", static_cast<gint>(port));
   });
 }
+
+void VideoStreamControl::setAddress(const QString &address) {
+  modify_source(get(Stream::Left), [&address](QGst::ElementPtr src) {
+    src->setProperty("address", address.toStdString().data());
+  });
+  modify_source(get(Stream::Right), [&address](QGst::ElementPtr src) {
+    src->setProperty("address", address.toStdString().data());
+  });
+}
