@@ -61,8 +61,8 @@ struct Control::Impl {
   }
 };
 
-template <typename Func>
-static QWidget *setupVideoControls(Func &&reconnector) {
+template <typename Reconnect, typename Idr>
+static QWidget *setupVideoControls(Reconnect &&reconnector, Idr &&idr) {
   auto portLabel = new QLabel("Port:");
   portLabel->setSizePolicy(QSizePolicy::Policy::Fixed,
                            QSizePolicy::Policy::Fixed);
@@ -80,13 +80,46 @@ static QWidget *setupVideoControls(Func &&reconnector) {
                      reconnector(port->text().toInt());
                    });
 
+  auto portControls = new QFrame;
+  auto portControlsLayout = new QHBoxLayout(portControls);
+
+  portControlsLayout->addWidget(portLabel);
+  portControlsLayout->addWidget(port);
+  portControlsLayout->addWidget(reconnect);
+
+  auto iFrameControls = new QWidget;
+  auto iFrameControlsLayout = new QHBoxLayout(iFrameControls);
+  iFrameControlsLayout->setContentsMargins(0, 0, 0, 0);
+
+  auto iFrameLabel = new QLabel("I-Frame periodicity [s]:");
+  auto iFrameEdit = new QLineEdit;
+  iFrameEdit->setValidator(new QDoubleValidator(0.0, 100.0, 2));
+
+  iFrameControlsLayout->addWidget(iFrameLabel);
+  iFrameControlsLayout->addWidget(iFrameEdit);
+
+  auto idrControls = new QWidget;
+  auto idrControlsLayout = new QHBoxLayout(idrControls);
+  idrControlsLayout->setContentsMargins(0, 0, 0, 0);
+
+  auto idrLabel = new QLabel("IDR periodicity [s]:");
+  auto idrEdit = new QLineEdit;
+  idrEdit->setValidator(new QDoubleValidator(0.0, 100.0, 2));
+
+  QObject::connect(
+      idrEdit, &QLineEdit::textChanged,
+      [idr = std::move(idr)](const QString &text) { qDebug() << text; });
+
+  idrControlsLayout->addWidget(idrLabel);
+  idrControlsLayout->addWidget(idrEdit);
+
   auto videoControls = new QFrame;
   videoControls->setFrameShape(QFrame::StyledPanel);
-  auto videoControlsLayout = new QHBoxLayout(videoControls);
+  auto videoControlsLayout = new QVBoxLayout(videoControls);
 
-  videoControlsLayout->addWidget(portLabel);
-  videoControlsLayout->addWidget(port);
-  videoControlsLayout->addWidget(reconnect);
+  videoControlsLayout->addWidget(portControls);
+  videoControlsLayout->addWidget(iFrameControls);
+  videoControlsLayout->addWidget(idrControls);
 
   return videoControls;
 }
