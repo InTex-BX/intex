@@ -23,7 +23,6 @@
 #include "VideoWindow.h"
 #include "VideoWidget.h"
 #include "VideoStreamControl.h"
-#include "PipelineModifier.h"
 #include "IntexWidget.h"
 
 struct Control::Impl {
