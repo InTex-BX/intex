@@ -24,6 +24,7 @@
 #include "VideoWidget.h"
 #include "VideoStreamControl.h"
 #include "PipelineModifier.h"
+#include "IntexWidget.h"
 
 struct Control::Impl {
   VideoWindow leftWindow;
@@ -31,6 +32,8 @@ struct Control::Impl {
 
   VideoWidget *leftVideoWidget;
   VideoWidget *rightVideoWidget;
+
+  IntexWidget * intexWidget;
 
   VideoStreamControl videoControl;
 
@@ -44,6 +47,7 @@ struct Control::Impl {
   Impl(QWidget *parent)
       : leftWindow(parent), rightWindow(parent),
         leftVideoWidget(new VideoWidget), rightVideoWidget(new VideoWidget),
+        intexWidget(new IntexWidget),
         videoControl(*leftVideoWidget, *rightVideoWidget,
                      *leftWindow.videoWidget(), *rightWindow.videoWidget()),
         switchWidgets_(tr("Ctrl+X"), parent, SLOT(switchWidgets())),
@@ -235,16 +239,7 @@ Control::Control(QWidget *parent)
   controlLayout->addWidget(splitSlider);
 
   centralLayout->addWidget(controlWidget);
-  centralLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::MinimumExpanding,
-                                         QSizePolicy::MinimumExpanding));
-
-#if 0
-  QPalette palette;
-  palette.setBrush(this->backgroundRole(),
-                   QBrush(QImage("backgroundImage.jpg")));
-
-  this->setPalette(palette);
-#endif
+  centralLayout->addWidget(d_->intexWidget);
 }
 
 Control::~Control() = default;
