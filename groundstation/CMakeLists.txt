@@ -6,6 +6,7 @@ add_library(intex_gui STATIC
   VideoWindow.c++
   Control.c++
   VideoStreamControl.c++
+  IntexWidget.c++
 )
 qt5_use_modules(intex_gui Widgets Core)
 set_target_properties(intex_gui PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
