@@ -38,6 +38,9 @@ struct Control::Impl {
   QShortcut switchWindows_;
   QShortcut showNormal_;
 
+  QWidget *leftVideoControl;
+  QWidget *rightVideoControl;
+
   Impl(QWidget *parent)
       : leftWindow(parent), rightWindow(parent),
         leftVideoWidget(new VideoWidget), rightVideoWidget(new VideoWidget),
@@ -100,6 +103,13 @@ Control::Control(QWidget *parent)
 
   mainMenu->addAction(tr("Preferences"));
 
+  auto viewMenu = menuBar()->addMenu(tr("View"));
+  auto viewAction = viewMenu->addAction(tr("Show Video Controls"), this,
+                                        SLOT(showVideoControls(bool)),
+                                        QKeySequence(tr("Ctrl+k")));
+  viewAction->setCheckable(true);
+  viewAction->setChecked(true);
+
   auto centralWidget = new QWidget;
   setCentralWidget(centralWidget);
 
@@ -116,8 +126,9 @@ Control::Control(QWidget *parent)
   leftVideoLayout->addWidget(d_->leftVideoWidget);
   leftVideoLayout->addItem(
       new QSpacerItem(0, 0, QSizePolicy::Fixed, QSizePolicy::MinimumExpanding));
-  leftVideoLayout->addWidget(
-      setupVideoControls([this](int port) { this->setPort0(port); }));
+  d_->leftVideoControl =
+      setupVideoControls([this](int port) { this->setPort0(port); }, [] {});
+  leftVideoLayout->addWidget(d_->leftVideoControl);
 
   auto rightVideo = new QFrame;
   rightVideo->setFrameShape(QFrame::StyledPanel);
@@ -126,8 +137,9 @@ Control::Control(QWidget *parent)
   rightVideoLayout->addWidget(d_->rightVideoWidget);
   rightVideoLayout->addItem(
       new QSpacerItem(0, 0, QSizePolicy::Fixed, QSizePolicy::MinimumExpanding));
-  rightVideoLayout->addWidget(
-      setupVideoControls([this](int port) { this->setPort1(port); }));
+  d_->rightVideoControl =
+      setupVideoControls([this](int port) { this->setPort1(port); }, [] {});
+  rightVideoLayout->addWidget(d_->rightVideoControl);
 
   videoLayout->addWidget(leftVideo);
   videoLayout->addWidget(rightVideo);
@@ -214,6 +226,10 @@ void Control::setPort0(const int port) {
 }
 void Control::setPort1(const int port) {
   d_->setPort(VideoStreamControl::Stream::Right, port);
+}
+void Control::showVideoControls(bool show) {
+  d_->leftVideoControl->setVisible(show);
+  d_->rightVideoControl->setVisible(show);
 }
 
 void onBusMessage(const QGst::MessagePtr &message);
