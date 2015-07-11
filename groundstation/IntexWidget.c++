@@ -12,6 +12,9 @@
 #include <QTransform>
 #include <QPolygon>
 #include <QFormLayout>
+#include <QMenu>
+#include <QAction>
+#include <QList>
 
 #include <QDebug>
 
@@ -26,10 +29,19 @@
 class PneumaticWidget : public QFrame {
   Q_OBJECT
 
+  QMenu *contextMenu_;
+  QList<QAction *> actions;
+
+  void contextMenuEvent(QContextMenuEvent *event) Q_DECL_OVERRIDE {
+    if (contextMenu_ != nullptr)
+      contextMenu_->popup(event->globalPos());
+  }
+
 public:
   enum class Direction { North, East, South, West };
 
-  PneumaticWidget(QWidget *parent = 0) : QFrame(parent) {
+  PneumaticWidget(QWidget *parent = nullptr, QMenu *contextMenu = nullptr)
+      : QFrame(parent), contextMenu_(contextMenu) {
     setMinimumSize({20, 40});
   }
   QSize sizeHint() const override { return QSize{32, 64}; }
@@ -38,6 +50,18 @@ public:
     const auto width = size().width() - 2;
     const auto widgetHeight = qMin(height, width * 2);
     return {qMin(width, (widgetHeight + 1) / 2), widgetHeight};
+  }
+
+  QAction *addAction(QString text) {
+    actions.push_back(contextMenu_->addAction(std::move(text)));
+    return actions.back();
+  }
+
+public Q_SLOTS:
+  void setConnected(bool connected) {
+    for (auto &&action : actions) {
+      action->setEnabled(connected);
+    }
   }
 
 protected:
@@ -53,8 +77,11 @@ protected:
       return Direction::North;
     };
   }
+
+  // clang-format off
 Q_SIGNALS:
   void connectionOffset(const enum Direction dir, const int offset);
+  // clang-format on
 };
 
 class DebugWidget : public PneumaticWidget {
@@ -83,8 +110,19 @@ public:
 };
 
 class Tank : public PneumaticWidget {
+  Q_OBJECT
+
+  QAction *pressureAction;
+
 public:
-  Tank(QWidget *parent = 0) : PneumaticWidget(parent) {}
+  Tank(QWidget *parent = 0)
+      : PneumaticWidget(parent, new QMenu),
+        pressureAction(addAction(tr("Depressurize"))) {
+    pressureAction->setCheckable(true);
+    connect(pressureAction, &QAction::triggered,
+            [this](bool checked) { Q_EMIT depressurizeChanged(checked); });
+  }
+
   void paintEvent(QPaintEvent *event) override {
     QFrame::paintEvent(event);
     QPainter painter(this);
@@ -99,10 +137,16 @@ public:
     const auto end = QPointF(tankSize.width() / 2, size().height());
     painter.drawLine(start, end);
   }
-  void resizeEvent(QResizeEvent * event) override {
+
+  void resizeEvent(QResizeEvent *event) override {
     PneumaticWidget::resizeEvent(event);
     Q_EMIT connectionOffset(Direction::South, size().width() / 2);
   }
+
+  // clang-format off
+Q_SIGNALS:
+  void depressurizeChanged(bool depressurize);
+  // clang-format on
 };
 
 class Outlet : public PneumaticWidget {
@@ -113,7 +157,8 @@ protected:
   auto outletHeight() const { return size().height() * outletHeightFraction; }
 
 public:
-  Outlet(QWidget *parent = 0) : PneumaticWidget(parent) {}
+  Outlet(QWidget *parent = 0, QMenu *contextMenu = nullptr)
+      : PneumaticWidget(parent, contextMenu) {}
   void paintEvent(QPaintEvent *event) override {
     QPointF antenna[6];
     QFrame::paintEvent(event);
@@ -135,11 +180,19 @@ public:
 class Antenna : public Outlet {
   Q_OBJECT
 
+  QAction *inflateAction;
+
   static constexpr auto antennaIndentFraction = 0.1;
   qreal inflateState = 0;
 
 public:
-  Antenna(QWidget *parent = 0) : Outlet(parent) {}
+  Antenna(QWidget *parent = 0)
+      : Outlet(parent, new QMenu), inflateAction(addAction(tr("Inflate"))) {
+    inflateAction->setCheckable(true);
+    connect(inflateAction, &QAction::triggered,
+            [this](bool checked) { Q_EMIT inflateChanged(checked); });
+  }
+
   void paintEvent(QPaintEvent *event) override {
     QPointF antenna[9];
     Outlet::paintEvent(event);
@@ -174,8 +227,13 @@ public Q_SLOTS:
     inflateState = inflation;
     update();
   }
+
+  // clang-format off
+Q_SIGNALS:
+  void inflateChanged(bool inflate);
+  // clang-format on
 };
-  
+
 class Connection : public PneumaticWidget {
   Q_OBJECT
 
@@ -199,9 +257,7 @@ protected:
     return static_cast<enum Direction>(result);
   }
 
-  const Anchor &reference() const {
-    return anchors.front();
-  }
+  const Anchor &reference() const { return anchors.front(); }
 
   int coordinate(const Anchor &anchor, const int ref) const {
     if (anchor.offset == -1)
@@ -251,7 +307,8 @@ protected:
         angle_(static_cast<int>(anchors.front().direction) * 90.0) {}
 
 public:
-  Connection(const enum Direction from, const enum Direction to, QWidget *parent = 0)
+  Connection(const enum Direction from, const enum Direction to,
+             QWidget *parent = 0)
       : Connection({{from, -1}, {to, -1}}, parent) {}
   Connection(const enum Direction in, const enum Direction out,
              const enum Direction out2, QWidget *parent = 0)
@@ -260,7 +317,7 @@ public:
   void paintEvent(QPaintEvent *event) override {
     QFrame::paintEvent(event);
     QPainter painter(this);
-    
+
     int width;
     int height;
     QPoint translation;
@@ -326,10 +383,21 @@ public Q_SLOTS:
 class ElectricValve : public PneumaticWidget {
   Q_OBJECT
 
-  bool open = true;
+  QAction *valveAction;
+
+  bool open = false;
 
 public:
-  ElectricValve(QWidget *parent = 0) : PneumaticWidget(parent) {}
+  ElectricValve(QWidget *parent = 0)
+      : PneumaticWidget(parent, new QMenu), valveAction(addAction(tr("Open"))) {
+    valveAction->setCheckable(true);
+    connect(valveAction, &QAction::triggered, [this](bool checked) {
+      Q_EMIT valveChanged(checked);
+      open = checked;
+      update();
+    });
+  }
+
   void paintEvent(QPaintEvent *event) override {
     PneumaticWidget::paintEvent(event);
     QPainter painter(this);
@@ -391,16 +459,6 @@ public:
     if (open) {
       const auto leftEnd = size().width() / 2 - quarterWidth;
       const auto rightEnd = size().width() / 2 + quarterWidth;
-      painter.drawLine(QLine{0, connectionHeight, leftEnd, connectionHeight});
-      painter.drawLine(
-          QLine{leftEnd, connectionTop, leftEnd, connectionBottom});
-      painter.drawLine(
-          QLine{rightEnd, connectionHeight, size().width(), connectionHeight});
-      painter.drawLine(
-          QLine{rightEnd, connectionTop, rightEnd, connectionBottom});
-    } else {
-      const auto leftEnd = size().width() / 2 - quarterWidth;
-      const auto rightEnd = size().width() / 2 + quarterWidth;
       painter.drawLine(
           QLine{0, connectionHeight, size().width(), connectionHeight});
       QPolygon arrowHead;
@@ -409,12 +467,22 @@ public:
       arrowHead << QPoint(rightEnd + quarterWidth, connectionHeight);
       painter.setBrush(Qt::black);
       painter.drawPolygon(arrowHead);
+    } else {
+      const auto leftEnd = size().width() / 2 - quarterWidth;
+      const auto rightEnd = size().width() / 2 + quarterWidth;
+      painter.drawLine(QLine{0, connectionHeight, leftEnd, connectionHeight});
+      painter.drawLine(
+          QLine{leftEnd, connectionTop, leftEnd, connectionBottom});
+      painter.drawLine(
+          QLine{rightEnd, connectionHeight, size().width(), connectionHeight});
+      painter.drawLine(
+          QLine{rightEnd, connectionTop, rightEnd, connectionBottom});
     }
   }
 
-  void resizeEvent(QResizeEvent * event) {
+  void resizeEvent(QResizeEvent *event) {
     PneumaticWidget::resizeEvent(event);
-    
+
     const auto size_ = widgetSize();
     const auto heightIncrement = size_.height() / 7;
     const auto height = 4 * heightIncrement + heightIncrement / 2 +
@@ -429,6 +497,11 @@ public Q_SLOTS:
     open = open_;
     update();
   }
+
+  // clang-format off
+Q_SIGNALS:
+  void valveChanged(bool open);
+  // clang-format on
 };
 #pragma clang diagnostic pop
 
@@ -440,12 +513,14 @@ IntexWidget::IntexWidget(QWidget *parent) : QFrame(parent) {
   auto layout = new QGridLayout(this);
   layout->setRowMinimumHeight(1, 64);
   layout->setSpacing(0);
-  
+
   auto tank = new Tank;
+  auto antenna = new Antenna;
   auto connector1 = new Connection(PneumaticWidget::Direction::North,
                                    PneumaticWidget::Direction::East);
   QObject::connect(tank, &PneumaticWidget::connectionOffset, connector1,
                    &Connection::connectionOffsetChanged);
+
   auto valve1 = new ElectricValve;
   QObject::connect(valve1, &PneumaticWidget::connectionOffset, connector1,
                    &Connection::connectionOffsetChanged);
@@ -480,20 +555,41 @@ IntexWidget::IntexWidget(QWidget *parent) : QFrame(parent) {
 
   layout->addWidget(tank, 0, 0);
   layout->addWidget(internalInfo, 0, 1);
-  layout->addWidget(new Antenna, 0, 2);
+  layout->addWidget(antenna, 0, 2);
   layout->addWidget(externalInfo, 0, 3);
   layout->addWidget(new Outlet, 0, 4);
-  
+
   layout->addWidget(connector1, 1, 0);
   layout->addWidget(valve1, 1, 1);
   layout->addWidget(yconnector, 1, 2);
   layout->addWidget(valve2, 1, 3);
   layout->addWidget(connector2, 1, 4);
+
+  connect(this, &IntexWidget::onConnectionChanged, tank,
+          &PneumaticWidget::setConnected);
+  connect(this, &IntexWidget::onConnectionChanged, valve1,
+          &PneumaticWidget::setConnected);
+  connect(this, &IntexWidget::onConnectionChanged, antenna,
+          &PneumaticWidget::setConnected);
+  connect(this, &IntexWidget::onConnectionChanged, valve2,
+          &PneumaticWidget::setConnected);
+  connect(tank, &Tank::depressurizeChanged, this,
+          &IntexWidget::depressurizeChanged);
+  connect(valve1, &ElectricValve::valveChanged, this,
+          &IntexWidget::valve1Changed);
+  connect(antenna, &Antenna::inflateChanged, this,
+          &IntexWidget::inflateChanged);
+  connect(valve2, &ElectricValve::valveChanged, this,
+          &IntexWidget::valve2Changed);
 }
 
 IntexWidget::~IntexWidget() = default;
 void IntexWidget::setPressure(const double pressure) {}
+void IntexWidget::setConnected(bool connected) {
+  Q_EMIT onConnectionChanged(connected);
+}
 
 #pragma clang diagnostic ignored "-Wpadded"
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
 #include "IntexWidget.moc"
+#include "moc_IntexWidget.cpp"
