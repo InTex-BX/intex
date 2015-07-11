@@ -20,7 +20,6 @@ private Q_SLOTS:
   void onDisconnect();
   void switchWidgets();
   void switchWindows();
-  void onBitrateChanged(int bitrate);
   void setPort0(const int port);
   void setPort1(const int port);
   void showVideoControls(bool show);

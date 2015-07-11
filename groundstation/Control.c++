@@ -32,6 +32,9 @@ struct Control::Impl {
   VideoWidget *leftVideoWidget;
   VideoWidget *rightVideoWidget;
 
+  QSlider *bitrateSlider;
+  QSlider *splitSlider;
+
   IntexWidget * intexWidget;
 
   VideoStreamControl videoControl;
@@ -46,7 +49,8 @@ struct Control::Impl {
   Impl(QWidget *parent)
       : leftWindow(parent), rightWindow(parent),
         leftVideoWidget(new VideoWidget), rightVideoWidget(new VideoWidget),
-        intexWidget(new IntexWidget),
+        bitrateSlider(new QSlider(Qt::Horizontal)),
+        splitSlider(new QSlider(Qt::Horizontal)), intexWidget(new IntexWidget),
         videoControl(*leftVideoWidget, *rightVideoWidget,
                      *leftWindow.videoWidget(), *rightWindow.videoWidget()),
         switchWidgets_(tr("Ctrl+X"), parent, SLOT(switchWidgets())),
@@ -54,6 +58,13 @@ struct Control::Impl {
         showNormal_(tr("Esc"), parent, SLOT(showNormal())) {
     leftWindow.setWindowTitle("InTex Live Feed 0");
     rightWindow.setWindowTitle("InTex Live Feed 1");
+
+    auto setBitrateChanged = [this](int) {
+      const auto split = static_cast<unsigned>(splitSlider->value());
+      const auto bitrate = static_cast<unsigned>(bitrateSlider->value());
+    };
+    QObject::connect(bitrateSlider, &QSlider::valueChanged, setBitrateChanged);
+    QObject::connect(splitSlider, &QSlider::valueChanged, setBitrateChanged);
   }
 
   ~Impl() {}
@@ -194,48 +205,47 @@ Control::Control(QWidget *parent)
   auto bitrateLabel = new QLabel;
   bitrateLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
-  auto bitrateSlider = new QSlider(Qt::Horizontal);
-  bitrateSlider->setMinimum(1);
-  bitrateSlider->setMaximum(1000);
-  bitrateSlider->setSingleStep(1);
-  bitrateSlider->setPageStep(10);
-  bitrateSlider->setSizePolicy(QSizePolicy::MinimumExpanding,
-                               QSizePolicy::Fixed);
+  d_->bitrateSlider->setMinimum(1);
+  d_->bitrateSlider->setMaximum(1000);
+  d_->bitrateSlider->setSingleStep(1);
+  d_->bitrateSlider->setPageStep(10);
+  d_->bitrateSlider->setSizePolicy(QSizePolicy::MinimumExpanding,
+                                   QSizePolicy::Fixed);
 
   auto bitrateUpdate = [bitrateLabel](int bitrate) {
     bitrateLabel->setText(QString("Bitrate: %1 kBit/s").arg(bitrate));
   };
-  connect(bitrateSlider, &QSlider::sliderMoved, bitrateUpdate);
-  connect(bitrateSlider, &QSlider::valueChanged, bitrateUpdate);
+  connect(d_->bitrateSlider, &QSlider::sliderMoved, bitrateUpdate);
+  connect(d_->bitrateSlider, &QSlider::valueChanged, bitrateUpdate);
 
-  bitrateSlider->setValue(800);
-  bitrateSlider->setTracking(false);
+  d_->bitrateSlider->setValue(800);
+  d_->bitrateSlider->setTracking(false);
 
   auto splitLabel = new QLabel;
   bitrateLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
-  auto splitSlider = new QSlider(Qt::Horizontal);
-  splitSlider->setMinimum(1);
-  splitSlider->setMaximum(100);
-  splitSlider->setSingleStep(1);
-  splitSlider->setPageStep(10);
-  splitSlider->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+  d_->splitSlider->setMinimum(1);
+  d_->splitSlider->setMaximum(100);
+  d_->splitSlider->setSingleStep(1);
+  d_->splitSlider->setPageStep(10);
+  d_->splitSlider->setSizePolicy(QSizePolicy::MinimumExpanding,
+                                 QSizePolicy::Fixed);
 
   auto splitUpdate = [splitLabel](int split) {
     splitLabel->setText(
         QString("Split: %1/%2")
             .arg(QString::number(split), QString::number(100 - split)));
   };
-  connect(splitSlider, &QSlider::sliderMoved, splitUpdate);
-  connect(splitSlider, &QSlider::valueChanged, splitUpdate);
+  connect(d_->splitSlider, &QSlider::sliderMoved, splitUpdate);
+  connect(d_->splitSlider, &QSlider::valueChanged, splitUpdate);
 
-  splitSlider->setValue(50);
-  splitSlider->setTracking(false);
+  d_->splitSlider->setValue(50);
+  d_->splitSlider->setTracking(false);
 
   controlLayout->addWidget(bitrateLabel);
-  controlLayout->addWidget(bitrateSlider);
+  controlLayout->addWidget(d_->bitrateSlider);
   controlLayout->addWidget(splitLabel);
-  controlLayout->addWidget(splitSlider);
+  controlLayout->addWidget(d_->splitSlider);
 
   centralLayout->addWidget(controlWidget);
   centralLayout->addWidget(d_->intexWidget);
@@ -247,7 +257,6 @@ void Control::onConnect() {}
 void Control::onDisconnect() {}
 void Control::switchWidgets() { d_->switchWidgets(); }
 void Control::switchWindows() { d_->switchWindows(); }
-void Control::onBitrateChanged(int bitrate){}
 void Control::setPort0(const int port) {
   d_->setPort(VideoStreamControl::Stream::Left, port);
 }
