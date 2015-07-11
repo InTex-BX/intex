@@ -8,8 +8,12 @@ add_library(intex_gui STATIC
   VideoStreamControl.c++
   IntexWidget.c++
 )
+
 qt5_use_modules(intex_gui Widgets Core)
 set_target_properties(intex_gui PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
+
+add_subdirectory(rpc)
+include_directories(rpc)
 
 add_executable(control main.c++)
 target_link_libraries(control
@@ -21,6 +25,7 @@ target_link_libraries(control
   ${CAPNP_LIBRARIES}
   intex
   intex_gui
+  intex_client_rpc
   c++abi
 )
 
