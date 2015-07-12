@@ -120,8 +120,11 @@ public:
       : PneumaticWidget(parent, new QMenu),
         pressureAction(addAction(tr("Depressurize"))) {
     pressureAction->setCheckable(true);
-    connect(pressureAction, &QAction::triggered,
-            [this](bool checked) { Q_EMIT depressurizeChanged(checked); });
+    connect(pressureAction, &QAction::triggered, [this](bool checked) {
+      Q_EMIT depressurizeRequest(checked, [this, checked](const bool success) {
+        pressureAction->setChecked(success ? checked : !checked);
+      });
+    });
   }
 
   void paintEvent(QPaintEvent *event) override {
@@ -146,7 +149,7 @@ public:
 
   // clang-format off
 Q_SIGNALS:
-  void depressurizeChanged(bool depressurize);
+  void depressurizeRequest(bool depressurize, std::function<void(bool)> cb);
   // clang-format on
 };
 
@@ -190,8 +193,11 @@ public:
   Antenna(QWidget *parent = 0)
       : Outlet(parent, new QMenu), inflateAction(addAction(tr("Inflate"))) {
     inflateAction->setCheckable(true);
-    connect(inflateAction, &QAction::triggered,
-            [this](bool checked) { Q_EMIT inflateChanged(checked); });
+    connect(inflateAction, &QAction::triggered, [this](bool checked) {
+      Q_EMIT inflateRequest(checked, [this, checked](const bool success) {
+        inflateAction->setChecked(success ? checked : !checked);
+      });
+    });
   }
 
   void paintEvent(QPaintEvent *event) override {
@@ -231,7 +237,7 @@ public Q_SLOTS:
 
   // clang-format off
 Q_SIGNALS:
-  void inflateChanged(bool inflate);
+  void inflateRequest(bool inflate, std::function<void(bool)> cb);
   // clang-format on
 };
 
@@ -386,17 +392,13 @@ class ElectricValve : public PneumaticWidget {
 
   QAction *valveAction;
 
-  bool open = false;
-
 public:
   ElectricValve(QWidget *parent = 0)
       : PneumaticWidget(parent, new QMenu), valveAction(addAction(tr("Open"))) {
     valveAction->setCheckable(true);
-    connect(valveAction, &QAction::triggered, [this](bool checked) {
-      Q_EMIT valveChanged(checked);
-      open = checked;
-      update();
-    });
+    valveAction->setChecked(false);
+    connect(valveAction, &QAction::triggered, this,
+            &ElectricValve::valveRequest);
   }
 
   void paintEvent(QPaintEvent *event) override {
@@ -457,7 +459,7 @@ public:
     painter.resetTransform();
     painter.translate(0, (size().height() - size_.height()) / 2);
     /* draw connection lines to the border of the widget */
-    if (open) {
+    if (valveAction->isChecked()) {
       const auto leftEnd = size().width() / 2 - quarterWidth;
       const auto rightEnd = size().width() / 2 + quarterWidth;
       painter.drawLine(
@@ -494,22 +496,28 @@ public:
   }
 
 public Q_SLOTS:
-  void setState(bool open_) {
-    open = open_;
+  void setState(bool open) {
+    valveAction->setChecked(open);
     update();
   }
 
   // clang-format off
 Q_SIGNALS:
-  void valveChanged(bool open);
+  void valveRequest(bool open);
   // clang-format on
 };
 #pragma clang diagnostic pop
 
 struct IntexWidget::Impl {
   QPlainTextEdit *log;
-  Impl(QWidget *parent = nullptr) : log(new QPlainTextEdit(parent)) {
+  ElectricValve * valve1;
+  ElectricValve * valve2;
+
+  Impl(QWidget *parent = nullptr)
+      : log(new QPlainTextEdit(parent)), valve1(new ElectricValve(parent)),
+        valve2(new ElectricValve(parent)) {
     log->setReadOnly(true);
+    log->setCenterOnScroll(true);
   }
 };
 
@@ -530,25 +538,21 @@ IntexWidget::IntexWidget(QWidget *parent)
   QObject::connect(tank, &PneumaticWidget::connectionOffset, connector1,
                    &Connection::connectionOffsetChanged);
 
-  auto valve1 = new ElectricValve;
-  QObject::connect(valve1, &PneumaticWidget::connectionOffset, connector1,
+  QObject::connect(d->valve1, &PneumaticWidget::connectionOffset, connector1,
                    &Connection::connectionOffsetChanged);
 
   auto yconnector = new Connection(PneumaticWidget::Direction::West,
                                    PneumaticWidget::Direction::North,
                                    PneumaticWidget::Direction::East);
-  QObject::connect(valve1, &PneumaticWidget::connectionOffset, yconnector,
+  QObject::connect(d->valve1, &PneumaticWidget::connectionOffset, yconnector,
                    &Connection::connectionOffsetChanged);
 
-  auto valve2 = new ElectricValve;
-  valve2->setState(false);
-
-  QObject::connect(valve2, &PneumaticWidget::connectionOffset, yconnector,
+  QObject::connect(d->valve2, &PneumaticWidget::connectionOffset, yconnector,
                    &Connection::connectionOffsetChanged);
 
   auto connector2 = new Connection(PneumaticWidget::Direction::West,
                                    PneumaticWidget::Direction::North);
-  QObject::connect(valve2, &PneumaticWidget::connectionOffset, connector2,
+  QObject::connect(d->valve2, &PneumaticWidget::connectionOffset, connector2,
                    &Connection::connectionOffsetChanged);
 
   auto internalInfo = new QWidget;
@@ -569,39 +573,50 @@ IntexWidget::IntexWidget(QWidget *parent)
   layout->addWidget(new Outlet, 0, 4);
 
   layout->addWidget(connector1, 1, 0);
-  layout->addWidget(valve1, 1, 1);
+  layout->addWidget(d->valve1, 1, 1);
   layout->addWidget(yconnector, 1, 2);
-  layout->addWidget(valve2, 1, 3);
+  layout->addWidget(d->valve2, 1, 3);
   layout->addWidget(connector2, 1, 4);
 
   layout->addWidget(d->log, 0, 5, 2, 1);
 
   connect(this, &IntexWidget::onConnectionChanged, tank,
           &PneumaticWidget::setConnected);
-  connect(this, &IntexWidget::onConnectionChanged, valve1,
+  connect(this, &IntexWidget::onConnectionChanged, d->valve1,
           &PneumaticWidget::setConnected);
   connect(this, &IntexWidget::onConnectionChanged, antenna,
           &PneumaticWidget::setConnected);
-  connect(this, &IntexWidget::onConnectionChanged, valve2,
+  connect(this, &IntexWidget::onConnectionChanged, d->valve2,
           &PneumaticWidget::setConnected);
-  connect(tank, &Tank::depressurizeChanged, this,
-          &IntexWidget::depressurizeChanged);
-  connect(valve1, &ElectricValve::valveChanged, this,
-          &IntexWidget::valve1Changed);
-  connect(antenna, &Antenna::inflateChanged, this,
-          &IntexWidget::inflateChanged);
-  connect(valve2, &ElectricValve::valveChanged, this,
-          &IntexWidget::valve2Changed);
+
+  connect(tank, &Tank::depressurizeRequest, this,
+          &IntexWidget::depressurizeRequest);
+  connect(d->valve1, &ElectricValve::valveRequest, this,
+          &IntexWidget::valve1Request);
+  connect(antenna, &Antenna::inflateRequest, this,
+          &IntexWidget::inflateRequest);
+  connect(d->valve2, &ElectricValve::valveRequest, this,
+          &IntexWidget::valve2Request);
 }
 
 IntexWidget::~IntexWidget() = default;
+
 void IntexWidget::setPressure(const double pressure) {}
+
 void IntexWidget::setConnected(bool connected) {
   Q_EMIT onConnectionChanged(connected);
 }
 
 void IntexWidget::log(QString text) {
   d->log->appendPlainText(std::move(text));
+}
+
+void IntexWidget::onValve1Changed(const bool state) {
+  d->valve1->setState(state);
+}
+
+void IntexWidget::onValve2Changed(const bool state) {
+  d->valve2->setState(state);
 }
 
 #pragma clang diagnostic ignored "-Wpadded"

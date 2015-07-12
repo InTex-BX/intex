@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include <QFrame>
 #include <QObject>
 #include <QString>
@@ -19,13 +21,16 @@ public:
 public Q_SLOTS:
   void setConnected(bool connected);
   void log(QString text);
+  void onValve1Changed(const bool state);
+  void onValve2Changed(const bool state);
 
   // clang-format off
 Q_SIGNALS:
   void onConnectionChanged(bool connected);
   // clang-format on
-  void depressurizeChanged(bool depressurize);
-  void inflateChanged(bool inflate);
-  void valve1Changed(bool open);
-  void valve2Changed(bool open);
+  void depressurizeRequest(bool depressurize,
+                           std::function<void(bool)> success);
+  void inflateRequest(bool inflate, std::function<void(bool)> success);
+  void valve1Request(bool open);
+  void valve2Request(bool open);
 };
