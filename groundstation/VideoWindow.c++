@@ -42,5 +42,4 @@ bool VideoWindow::eventFilter(QObject *obj, QEvent *event) {
   return QMainWindow::eventFilter(obj, event);
 }
 
-#pragma clang diagnostic ignored "-Wpadded"
 #include "moc_VideoWindow.cpp"

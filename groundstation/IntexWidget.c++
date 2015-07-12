@@ -619,7 +619,6 @@ void IntexWidget::onValve2Changed(const bool state) {
   d->valve2->setState(state);
 }
 
-#pragma clang diagnostic ignored "-Wpadded"
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
 #include "IntexWidget.moc"
 #include "moc_IntexWidget.cpp"

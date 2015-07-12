@@ -100,6 +100,5 @@ void VideoWidget::Container::onVideoResized(const QGlib::ParamSpecPtr &) {
   updateGeometry();
 }
 
-#pragma clang diagnostic ignored "-Wpadded"
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
 #include "moc_VideoWidget.cpp"

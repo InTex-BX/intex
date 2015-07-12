@@ -55,7 +55,6 @@
 #pragma clang diagnostic ignored "-Wshadow"
 #pragma clang diagnostic ignored "-Wgnu-statement-expression"
 #pragma clang diagnostic ignored "-Wweak-vtables"
-#pragma clang diagnostic ignored "-Wpadded"
 
 namespace intex {
 namespace rpc {
@@ -549,6 +548,5 @@ QtAsyncIoContext setupAsyncIo() {
 }
 }
 
-#pragma clang diagnostic ignored "-Wpadded"
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
 #include "async-io.moc"

@@ -28,8 +28,5 @@ public:
 
 private:
   QSize calculateSize(const bool minimumSize = false) const;
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wpadded"
   QList<QLayoutItem *> items;
-#pragma clang diagnostic pop
 };

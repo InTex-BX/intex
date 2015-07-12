@@ -10,8 +10,6 @@ IntexRpcClient::~IntexRpcClient() noexcept {
   }
 }
 
-#pragma clang diagnostic ignored "-Wpadded"
-
 void IntexRpcClient::setPort(const InTexService service, const uint16_t port) {
   auto request = intex.setPortRequest();
   request.setService(service);
@@ -59,6 +57,5 @@ void IntexRpcClient::setBitrate(const InTexFeed feed, const unsigned bitrate) {
   });
 }
 
-#pragma clang diagnostic ignored "-Wpadded"
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
 #include "moc_IntexRpcClient.cpp"

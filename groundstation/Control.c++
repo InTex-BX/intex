@@ -320,5 +320,4 @@ void Control::showVideoControls(bool show) {
 
 void onBusMessage(const QGst::MessagePtr &message);
 
-#pragma clang diagnostic ignored "-Wpadded"
 #include "moc_Control.cpp"
