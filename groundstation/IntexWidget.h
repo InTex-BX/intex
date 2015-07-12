@@ -31,6 +31,7 @@ Q_SIGNALS:
   void depressurizeRequest(bool depressurize,
                            std::function<void(bool)> success);
   void inflateRequest(bool inflate, std::function<void(bool)> success);
+  void equalizeRequest(bool equalize, std::function<void(bool)> success);
   void valve1Request(bool open);
   void valve2Request(bool open);
 };

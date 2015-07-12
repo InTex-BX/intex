@@ -185,17 +185,25 @@ class Antenna : public Outlet {
   Q_OBJECT
 
   QAction *inflateAction;
+  QAction *equalizeAction;
 
   static constexpr auto antennaIndentFraction = 0.1;
   qreal inflateState = 0;
 
 public:
   Antenna(QWidget *parent = 0)
-      : Outlet(parent, new QMenu), inflateAction(addAction(tr("Inflate"))) {
+      : Outlet(parent, new QMenu), inflateAction(addAction(tr("Inflate"))),
+        equalizeAction(addAction(tr("Equalize"))) {
     inflateAction->setCheckable(true);
+    equalizeAction->setCheckable(true);
     connect(inflateAction, &QAction::triggered, [this](bool checked) {
       Q_EMIT inflateRequest(checked, [this, checked](const bool success) {
         inflateAction->setChecked(success ? checked : !checked);
+      });
+    });
+    connect(equalizeAction, &QAction::triggered, [this](bool checked) {
+      Q_EMIT equalizeRequest(checked, [ this, checked ](const bool success) {
+        equalizeAction->setChecked(success ? checked : !checked);
       });
     });
   }
@@ -238,6 +246,7 @@ public Q_SLOTS:
   // clang-format off
 Q_SIGNALS:
   void inflateRequest(bool inflate, std::function<void(bool)> cb);
+  void equalizeRequest(bool equalize, std::function<void(bool)> cb);
   // clang-format on
 };
 
