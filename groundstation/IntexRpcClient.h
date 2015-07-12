@@ -6,8 +6,8 @@
 #include <QObject>
 #include <QString>
 
-#include "ez-rpc.h"
-#include "intex.capnp.h"
+#include "rpc/ez-rpc.h"
+#include "rpc/intex.capnp.h"
 
 class IntexRpcClient : public QObject {
   Q_OBJECT

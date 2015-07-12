@@ -38,6 +38,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 include_directories(common)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/common)
 
 add_subdirectory(common)
 add_subdirectory(groundstation)
