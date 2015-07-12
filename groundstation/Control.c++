@@ -85,6 +85,11 @@ struct Control::Impl {
                        client.setGPIO(InTexHW::VALVE0, inflate, cb);
                        client.setGPIO(InTexHW::VALVE1, false, cb);
                      });
+    QObject::connect(intexWidget, &IntexWidget::equalizeRequest,
+                     [this](const bool equalize, auto cb) {
+                       client.setGPIO(InTexHW::VALVE0, false, cb);
+                       client.setGPIO(InTexHW::VALVE1, equalize, cb);
+                     });
     QObject::connect(intexWidget, &IntexWidget::valve1Request,
                      [this](const bool open) {
                        client.setGPIO(InTexHW::VALVE0, open, [](const auto) {});
