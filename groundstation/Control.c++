@@ -24,6 +24,7 @@
 #include "VideoWidget.h"
 #include "VideoStreamControl.h"
 #include "IntexWidget.h"
+#include "IntexRpcClient.h"
 
 struct Control::Impl {
   VideoWindow leftWindow;
@@ -46,6 +47,8 @@ struct Control::Impl {
   QWidget *leftVideoControl;
   QWidget *rightVideoControl;
 
+  IntexRpcClient client;
+
   Impl(QWidget *parent)
       : leftWindow(parent), rightWindow(parent),
         leftVideoWidget(new VideoWidget), rightVideoWidget(new VideoWidget),
@@ -55,24 +58,69 @@ struct Control::Impl {
                      *leftWindow.videoWidget(), *rightWindow.videoWidget()),
         switchWidgets_(tr("Ctrl+X"), parent, SLOT(switchWidgets())),
         switchWindows_(tr("Ctrl+Shift+X"), parent, SLOT(switchWindows())),
-        showNormal_(tr("Esc"), parent, SLOT(showNormal())) {
+        showNormal_(tr("Esc"), parent, SLOT(showNormal())), client("*", 1234) {
     leftWindow.setWindowTitle("InTex Live Feed 0");
     rightWindow.setWindowTitle("InTex Live Feed 1");
+
+    QObject::connect(&client, &IntexRpcClient::log, intexWidget,
+                     &IntexWidget::log);
+    QObject::connect(&client, &IntexRpcClient::gpioChanged,
+                     [this](const InTexHW hw, const bool state) {
+                       switch (hw) {
+                       case InTexHW::VALVE0:
+                         intexWidget->onValve1Changed(state);
+                         break;
+                       case InTexHW::VALVE1:
+                         intexWidget->onValve2Changed(state);
+                         break;
+                       }
+                     });
+    QObject::connect(intexWidget, &IntexWidget::depressurizeRequest,
+                     [this](const bool depressurize, auto cb) {
+                       client.setGPIO(InTexHW::VALVE0, depressurize, cb);
+                       client.setGPIO(InTexHW::VALVE1, depressurize, cb);
+                     });
+    QObject::connect(intexWidget, &IntexWidget::inflateRequest,
+                     [this](const bool inflate, auto cb) {
+                       client.setGPIO(InTexHW::VALVE0, inflate, cb);
+                       client.setGPIO(InTexHW::VALVE1, false, cb);
+                     });
+    QObject::connect(intexWidget, &IntexWidget::valve1Request,
+                     [this](const bool open) {
+                       client.setGPIO(InTexHW::VALVE0, open, [](const auto) {});
+                     });
+    QObject::connect(intexWidget, &IntexWidget::valve2Request,
+                     [this](const bool open) {
+                       client.setGPIO(InTexHW::VALVE1, open, [](const auto) {});
+                     });
 
     auto setBitrateChanged = [this](int) {
       const auto split = static_cast<unsigned>(splitSlider->value());
       const auto bitrate = static_cast<unsigned>(bitrateSlider->value());
+      client.setBitrate(InTexFeed::FEED0, split * bitrate);
+      client.setBitrate(InTexFeed::FEED1, (100 - split) * bitrate);
     };
     QObject::connect(bitrateSlider, &QSlider::valueChanged, setBitrateChanged);
     QObject::connect(splitSlider, &QSlider::valueChanged, setBitrateChanged);
+
+    QObject::connect(&client, &IntexRpcClient::portChanged,
+                     [this](const InTexService service, const uint16_t port) {
+                       switch (service) {
+                       case InTexService::VIDEO_FEED0:
+                         videoControl.setPort(VideoStreamControl::Stream::Left,
+                                              port);
+                         break;
+                       case InTexService::VIDEO_FEED1:
+                         videoControl.setPort(VideoStreamControl::Stream::Right,
+                                              port);
+                         break;
+                       }
+                     });
   }
 
   ~Impl() {}
   void switchWidgets() { videoControl.switchWidgets(); }
   void switchWindows() { videoControl.switchWindows(); }
-  void setPort(enum VideoStreamControl::Stream side, const int port) {
-    videoControl.setPort(side, port);
-  }
 };
 
 template <typename Reconnect, typename Idr>
@@ -167,25 +215,33 @@ Control::Control(QWidget *parent)
   auto videoLayout = new QHBoxLayout(videoWidget);
 
   auto leftVideo = new QFrame;
-  leftVideo->setFrameShape(QFrame::StyledPanel);
+  //leftVideo->setFrameShape(QFrame::StyledPanel);
   auto leftVideoLayout = new QVBoxLayout(leftVideo);
 
   leftVideoLayout->addWidget(d_->leftVideoWidget);
   leftVideoLayout->addItem(
       new QSpacerItem(0, 0, QSizePolicy::Fixed, QSizePolicy::MinimumExpanding));
-  d_->leftVideoControl =
-      setupVideoControls([this](int port) { this->setPort0(port); }, [] {});
+  d_->leftVideoControl = setupVideoControls(
+      [this](int port) {
+        d_->client.setPort(InTexService::VIDEO_FEED0,
+                           static_cast<uint16_t>(port));
+      },
+      [] {});
   leftVideoLayout->addWidget(d_->leftVideoControl);
 
   auto rightVideo = new QFrame;
-  rightVideo->setFrameShape(QFrame::StyledPanel);
+  //rightVideo->setFrameShape(QFrame::StyledPanel);
   auto rightVideoLayout = new QVBoxLayout(rightVideo);
 
   rightVideoLayout->addWidget(d_->rightVideoWidget);
   rightVideoLayout->addItem(
       new QSpacerItem(0, 0, QSizePolicy::Fixed, QSizePolicy::MinimumExpanding));
-  d_->rightVideoControl =
-      setupVideoControls([this](int port) { this->setPort1(port); }, [] {});
+  d_->rightVideoControl = setupVideoControls(
+      [this](int port) {
+        d_->client.setPort(InTexService::VIDEO_FEED1,
+                           static_cast<uint16_t>(port));
+      },
+      [] {});
   rightVideoLayout->addWidget(d_->rightVideoControl);
 
   videoLayout->addWidget(leftVideo);
@@ -257,12 +313,6 @@ void Control::onConnect() {}
 void Control::onDisconnect() {}
 void Control::switchWidgets() { d_->switchWidgets(); }
 void Control::switchWindows() { d_->switchWindows(); }
-void Control::setPort0(const int port) {
-  d_->setPort(VideoStreamControl::Stream::Left, port);
-}
-void Control::setPort1(const int port) {
-  d_->setPort(VideoStreamControl::Stream::Right, port);
-}
 void Control::showVideoControls(bool show) {
   d_->leftVideoControl->setVisible(show);
   d_->rightVideoControl->setVisible(show);
