@@ -4,10 +4,10 @@
 #include <functional>
 
 #include <QObject>
+#include <QString>
 
 #include "ez-rpc.h"
 #include "intex.capnp.h"
-
 
 class IntexRpcClient : public QObject {
   Q_OBJECT
@@ -21,6 +21,14 @@ public:
 
 public Q_SLOTS:
   void setPort(const InTexService service, const uint16_t port);
-  void setGPIO(const InTexHW hw, const bool open, std::function<void(bool)> cb);
+  void setGPIO(const InTexHW hw, const bool open,
+               std::function<void(bool)> succes);
   void setBitrate(const InTexFeed feed, const unsigned bitrate);
+
+  // clang-format off
+Q_SIGNALS:
+  void log(QString msg);
+  void gpioChanged(const InTexHW hw, const bool state);
+  void portChanged(const InTexService service, uint16_t port);
+  // clang-format on
 };

@@ -1,5 +1,3 @@
-#include <QDebug>
-
 #include "IntexRpcClient.h"
 
 IntexRpcClient::IntexRpcClient(std::string host, const unsigned port)
@@ -12,49 +10,55 @@ IntexRpcClient::~IntexRpcClient() noexcept {
   }
 }
 
+#pragma clang diagnostic ignored "-Wpadded"
+
 void IntexRpcClient::setPort(const InTexService service, const uint16_t port) {
-  auto &waitScope = client.getWaitScope();
   auto request = intex.setPortRequest();
   request.setService(service);
   request.setPort(port);
-  auto promise = request.send();
-  try {
-    auto response = promise.wait(waitScope);
-  } catch (const kj::Exception &e) {
-    qDebug() << e.getDescription().cStr();
-  }
+  request.send()
+      .then(
+          [this, service, port](auto &&) { Q_EMIT portChanged(service, port); },
+          [this](auto &&exception) {
+            Q_EMIT log(exception.getDescription().cStr());
+          })
+      .detach([this](auto &&exception) {
+        Q_EMIT log(exception.getDescription().cStr());
+      });
 }
 
-void IntexRpcClient::setGPIO(const InTexHW hw, const bool open,
-                             std::function<void(bool)> cb) {
-  qDebug() << static_cast<const int>(hw) << open;
+void IntexRpcClient::setGPIO(const InTexHW hw, const bool state,
+                             std::function<void(bool)> success) {
   auto request = intex.setGPIORequest();
   request.setPort(hw);
-  request.setOn(open);
+  request.setOn(state);
   request.send()
-      .then([cb](capnp::Response<Command::SetGPIOResults>) { cb(true); },
-            [cb](kj::Exception &&e) {
-              qDebug() << e.getDescription().cStr();
-              cb(false);
-
-            })
-      .detach([](auto &&e) { qDebug() << e.getDescription().cStr(); });
+      .then(
+          [this, hw, success, state](auto &&) {
+            success(true);
+            Q_EMIT log("Success");
+            Q_EMIT gpioChanged(hw, state);
+          },
+          [this, hw, state, success](auto &&e) {
+            success(false);
+            Q_EMIT gpioChanged(hw, !state);
+            Q_EMIT log(e.getDescription().cStr());
+          })
+      .detach([this, success](auto &&e) {
+        success(false);
+        Q_EMIT log(e.getDescription().cStr());
+      });
 }
 
 void IntexRpcClient::setBitrate(const InTexFeed feed, const unsigned bitrate) {
-  auto &waitScope = client.getWaitScope();
   auto request = intex.setBitrateRequest();
   request.setFeed(feed);
   request.setBitrate(bitrate);
-  auto promise = request.send();
-  try {
-    auto response = promise.wait(waitScope);
-  } catch (const kj::Exception &e) {
-    qDebug() << e.getDescription().cStr();
-  }
+  request.send().detach([this](auto &&exception) {
+    Q_EMIT log(exception.getDescription().cStr());
+  });
 }
 
 #pragma clang diagnostic ignored "-Wpadded"
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
 #include "moc_IntexRpcClient.cpp"
-#include "IntexRpcClient.moc"
