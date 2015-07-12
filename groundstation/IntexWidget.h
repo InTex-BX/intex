@@ -1,9 +1,14 @@
 #pragma once
 
 #include <QFrame>
+#include <QObject>
+#include <QString>
 
 class IntexWidget : public QFrame {
   Q_OBJECT
+
+  struct Impl;
+  std::unique_ptr<Impl> d;
 
 public:
   IntexWidget(QWidget *parent = 0);
@@ -13,6 +18,7 @@ public:
 
 public Q_SLOTS:
   void setConnected(bool connected);
+  void log(QString text);
 
   // clang-format off
 Q_SIGNALS:

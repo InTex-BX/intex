@@ -15,6 +15,7 @@
 #include <QMenu>
 #include <QAction>
 #include <QList>
+#include <QPlainTextEdit>
 
 #include <QDebug>
 
@@ -505,7 +506,15 @@ Q_SIGNALS:
 };
 #pragma clang diagnostic pop
 
-IntexWidget::IntexWidget(QWidget *parent) : QFrame(parent) {
+struct IntexWidget::Impl {
+  QPlainTextEdit *log;
+  Impl(QWidget *parent = nullptr) : log(new QPlainTextEdit(parent)) {
+    log->setReadOnly(true);
+  }
+};
+
+IntexWidget::IntexWidget(QWidget *parent)
+    : QFrame(parent), d(std::make_unique<Impl>(this)) {
   setFrameShape(QFrame::StyledPanel);
   setSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Expanding);
   int row = 0;
@@ -565,6 +574,8 @@ IntexWidget::IntexWidget(QWidget *parent) : QFrame(parent) {
   layout->addWidget(valve2, 1, 3);
   layout->addWidget(connector2, 1, 4);
 
+  layout->addWidget(d->log, 0, 5, 2, 1);
+
   connect(this, &IntexWidget::onConnectionChanged, tank,
           &PneumaticWidget::setConnected);
   connect(this, &IntexWidget::onConnectionChanged, valve1,
@@ -587,6 +598,10 @@ IntexWidget::~IntexWidget() = default;
 void IntexWidget::setPressure(const double pressure) {}
 void IntexWidget::setConnected(bool connected) {
   Q_EMIT onConnectionChanged(connected);
+}
+
+void IntexWidget::log(QString text) {
+  d->log->appendPlainText(std::move(text));
 }
 
 #pragma clang diagnostic ignored "-Wpadded"
