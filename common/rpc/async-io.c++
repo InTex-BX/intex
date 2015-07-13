@@ -73,7 +73,7 @@ public:
   kj::EventLoop &getKjLoop() { return kjLoop; }
 
   bool wait() override {
-    QCoreApplication::processEvents();
+    QCoreApplication::processEvents(QEventLoop::WaitForMoreEvents);
     return false;
   }
 
