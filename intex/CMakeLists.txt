@@ -17,4 +17,4 @@ target_link_libraries(experiment
   c++abi
 )
 set_target_properties(experiment PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
-qt5_use_modules(experiment Core)
+qt5_use_modules(experiment Core Network)

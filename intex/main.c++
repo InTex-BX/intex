@@ -7,9 +7,19 @@
 #include "CommandInterface.h"
 #include "rpc/ez-rpc.h"
 
+static void output(QtMsgType type, const QMessageLogContext &,
+                   const QString &msg) {
+  if (server_instance)
+    server_instance->syslog(type, msg);
+  else
+    std::cerr << msg.toStdString() << std::endl;
+}
+
 int main(int argc, char *argv[]) {
   QGst::init(&argc, &argv);
   QCoreApplication application(argc, argv);
+
+  qInstallMessageHandler(output);
 
   QTimer::singleShot(0, [] {
     // Set up the EzRpcServer, binding to port 5923 unless a
