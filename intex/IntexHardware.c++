@@ -67,10 +67,11 @@ static std::ostream &operator<<(std::ostream &os,
 }
 
 static void export_pin(int pin) {
-  std::ofstream export_("/sys/class/gpio/export");
-  if (export_.fail())
-    std::cout << "Error opening sysfs export file" << std::endl;
+  std::ofstream export_;
 
+  export_.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+
+  export_.open("/sys/class/gpio/export");
   export_ << pin << std::endl;
 }
 
