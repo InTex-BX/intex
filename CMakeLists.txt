@@ -42,3 +42,4 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/common)
 
 add_subdirectory(common)
 add_subdirectory(groundstation)
+add_subdirectory(intex)
