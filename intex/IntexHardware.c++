@@ -28,6 +28,8 @@ public:
   gpio &operator=(const gpio &) = delete;
   gpio &operator=(gpio &&) = default;
 
+  void init();
+
   void on();
   void off();
   bool isOn();
@@ -36,6 +38,8 @@ private:
   void set(const bool on);
   std::string name_;
   int pin_;
+  direction direction_;
+  bool active_low_;
 };
 
 static std::ostream &operator<<(std::ostream &os,
@@ -99,14 +103,17 @@ static int get_attribute(const gpio::attribute attr, const int pin) {
 
 gpio::gpio(int pin, std::string name, const direction direction,
            const bool active_low)
-    : name_(std::move(name)), pin_(pin) {
-  std::cout << "Configuring GPIO " << name << " (" << pin << ") as "
-            << direction << (active_low ? "(active low)" : "") << "."
+    : name_(std::move(name)), pin_(pin), direction_(direction),
+      active_low_(active_low) {}
+
+void gpio::init() {
+  std::cout << "Configuring GPIO " << name_ << " (" << pin_ << ") as "
+            << direction_ << (active_low_ ? "(active low)" : "") << "."
             << std::endl;
 
   export_pin(pin_);
-  set_attribute(attribute::active_low, pin_, active_low);
-  set_attribute(attribute::direction, pin_, direction);
+  set_attribute(attribute::active_low, pin_, active_low_);
+  set_attribute(attribute::direction, pin_, direction_);
 }
 
 void gpio::on() { set(true); }
