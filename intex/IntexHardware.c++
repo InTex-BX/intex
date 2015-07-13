@@ -178,35 +178,61 @@ Q_SIGNALS:
   // clang-format on
 };
 
-struct Valve::Impl {
-  PWM pwm;
+class GPIO : public QObject {
+  Q_OBJECT
 
-  class GPIO : public QObject {
-  public:
-    template <typename T>
-    GPIO(T &&backend)
-        : model_(std::make_unique<gpio_model<T>>(std::move(backend))) {}
-    void on() { model_->on(); }
-    void off() { model_->off(); }
+public:
+  template <typename T>
+  GPIO(T &&backend)
+      : model_(std::make_unique<gpio_model<T>>(std::move(backend))) {}
+  void init() {
+    try {
+      model_->init();
+    } catch (const std::exception &e) {
+      Q_EMIT log(QString::fromStdString(e.what()));
+    }
+  }
+  void on() {
+    try {
+      model_->on();
+    } catch (const std::exception &e) {
+      Q_EMIT log(QString::fromStdString(e.what()));
+    }
+  }
+  void off() {
+    try {
+      model_->off();
+    } catch (const std::exception &e) {
+      Q_EMIT log(QString::fromStdString(e.what()));
+    }
+  }
 
-  private:
-    struct gpio_concept {
-      virtual ~gpio_concept() = default;
-      virtual void on() = 0;
-      virtual void off() = 0;
-    };
+// clang-format off
+Q_SIGNALS:
+  void log(QString);
+// clang-format on
 
-    template <typename T> struct gpio_model final : gpio_concept {
-      T backend_;
-      gpio_model(T &&backend) : backend_(std::move(backend)) {}
-      //~gpio_model = default;
-      void on() override { backend_.on(); }
-      void off() override { backend_.off(); }
-    };
-
-    std::unique_ptr<gpio_concept> model_;
+private:
+  struct gpio_concept {
+    virtual ~gpio_concept() = default;
+    virtual void init() = 0;
+    virtual void on() = 0;
+    virtual void off() = 0;
   };
 
+  template <typename T> struct gpio_model final : gpio_concept {
+    T backend_;
+    gpio_model(T &&backend) : backend_(std::move(backend)) {}
+    void init() override { backend_.init(); }
+    void on() override { backend_.on(); }
+    void off() override { backend_.off(); }
+  };
+
+  std::unique_ptr<gpio_concept> model_;
+};
+
+struct Valve::Impl {
+  PWM pwm;
   GPIO pin_;
   Impl(const int pinno, std::string name)
       : pwm(2s, 0.1f), pin_(::intex::hw::gpio(pinno, std::move(name))) {
@@ -216,7 +242,10 @@ struct Valve::Impl {
 };
 
 Valve::Valve(const config::gpio &config)
-    : d(std::make_unique<Impl>(config.pinno, config.name)) {}
+    : d(std::make_unique<Impl>(config.pinno, config.name)) {
+  connect(&d->pin_, &GPIO::log, this, &Valve::log);
+  d->pin_.init();
+}
 Valve::~Valve() = default;
 
 void Valve::set(const bool state) {

@@ -39,7 +39,9 @@ static constexpr gpio valve0{5, "VALVE1"};
 static constexpr gpio valve1{6, "VALVE2"};
 }
 
-class Valve {
+class Valve : public QObject {
+  Q_OBJECT
+
   struct Impl;
   std::unique_ptr<Impl> d;
 
