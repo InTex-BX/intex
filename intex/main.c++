@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <QCoreApplication>
+#include <QObject>
 #include <QTimer>
 
 #include "qgst.h"
@@ -15,27 +16,30 @@ static void output(QtMsgType type, const QMessageLogContext &,
     std::cerr << msg.toStdString() << std::endl;
 }
 
+class RpcServer : public QObject, public intex::rpc::EzRpcServer {
+  Q_OBJECT
+
+public:
+  RpcServer(kj::StringPtr host, ::capnp::uint port)
+      : EzRpcServer(kj::heap<InTexServer>(), host, port) {}
+  ~RpcServer() noexcept {}
+  [[noreturn]] void run() {
+    auto &waitScope = getWaitScope();
+    kj::NEVER_DONE.wait(waitScope);
+  }
+};
+
 int main(int argc, char *argv[]) {
   QGst::init(&argc, &argv);
   QCoreApplication application(argc, argv);
 
   qInstallMessageHandler(output);
 
-  QTimer::singleShot(0, [] {
-    // Set up the EzRpcServer, binding to port 5923 unless a
-    // different port was specified by the user.
-    intex::rpc::EzRpcServer server(kj::heap<InTexServer>(), "*", 1234);
-    auto &waitScope = server.getWaitScope();
+  RpcServer server("*", 1234);
 
-    // Export a capability under the name "foo".  Note that the
-    // second parameter here can be any "Client" object or anything
-    // that can implicitly cast to a "Client" object.  You can even
-    // re-export a capability imported from another server.
-    // server.exportCap("foo", kj::heap<MyInterfaceImpl>());
-
-    // Run forever, accepting connections and handling requests.
-    kj::NEVER_DONE.wait(waitScope);
-  });
+  QTimer::singleShot(0, &server, &RpcServer::run);
 
   application.exec();
 }
+
+#include "main.moc"
