@@ -31,8 +31,11 @@ public:
 
 int main(int argc, char *argv[]) {
   QGst::init(&argc, &argv);
-  QCoreApplication application(argc, argv);
+  QCoreApplication::setOrganizationName("InTex");
+  QCoreApplication::setOrganizationDomain("tu-dresden.de/et/intex");
+  QCoreApplication::setApplicationName("InTex Experiment Control");
 
+  QCoreApplication application(argc, argv);
   qInstallMessageHandler(output);
 
   RpcServer server("*", 1234);
