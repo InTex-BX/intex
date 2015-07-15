@@ -4,7 +4,6 @@
 
 #include "qgst.h"
 #include "qgst_videowidget.h"
-#include "PipelineModifier.h"
 
 #include "VideoWidget.h"
 
