@@ -18,10 +18,10 @@ target_link_libraries(control
   ${CMAKE_THREAD_LIBS_INIT}
   ${QTGSTREAMER_UI_LIBRARIES}
   ${Boost_LIBRARIES}
-  ${CAPNP_LIBRARIES}
   intex
   intex_gui
   intex_rpc
+  ${CAPNP_LIBRARIES}
   c++abi
 )
 
