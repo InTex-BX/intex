@@ -293,13 +293,13 @@ protected:
     const int height = size().height();
     switch (reference().direction) {
     case Direction::North:
-      return {QPoint{0, 0}, width, height};
+      return std::make_tuple(QPoint{0, 0}, width, height);
     case Direction::East:
-      return {QPoint{width, 0}, height, width};
+      return std::make_tuple(QPoint{width, 0}, height, width);
     case Direction::South:
-      return {QPoint{width, height}, width, height};
+      return std::make_tuple(QPoint{width, height}, width, height);
     case Direction::West:
-      return {QPoint{0, height}, height, width};
+      return std::make_tuple(QPoint{0, height}, height, width);
     }
   }
 
