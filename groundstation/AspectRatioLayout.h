@@ -21,8 +21,8 @@ public:
   Qt::Orientations expandingDirections() const Q_DECL_OVERRIDE;
   int count() const Q_DECL_OVERRIDE;
 
-  bool hasHeightForWidth() const;
-  int heightForWidth(int width) const;
+  bool hasHeightForWidth() const Q_DECL_OVERRIDE;
+  int heightForWidth(int width) const Q_DECL_OVERRIDE;
 
   void addWidget(QWidget *widget);
 
