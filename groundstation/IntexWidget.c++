@@ -492,7 +492,7 @@ public:
     }
   }
 
-  void resizeEvent(QResizeEvent *event) {
+  void resizeEvent(QResizeEvent *event) override {
     PneumaticWidget::resizeEvent(event);
 
     const auto size_ = widgetSize();
