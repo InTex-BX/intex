@@ -1,5 +1,3 @@
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-
 add_library(intex_gui STATIC
   AspectRatioLayout.c++
   VideoWidget.c++
@@ -22,7 +20,6 @@ target_link_libraries(control
   intex_gui
   intex_rpc
   ${CAPNP_LIBRARIES}
-  c++abi
 )
 
 set_target_properties(control PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
