@@ -11,6 +11,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Weverything")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-c++98-compat")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-c++98-compat-pedantic")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-padded")
+if(${GCC_TOOLCHAIN})
+  # Not really a definition, but neither a language flag for C/CXX_FLAGS
+  add_definitions(-gcc-toolchain=${GCC_TOOLCHAIN})
+endif()
 
 if(${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "arm")
   add_definitions(-DBUILD_ON_RASPBERRY)
