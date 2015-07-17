@@ -11,9 +11,8 @@ add_executable(experiment main.c++ IntexHardware.c++ CommandInterface.c++)
 target_link_libraries(experiment
   intex_rpc
   intex_video
-  ${QTGSTREAMER_LIBRARIES}
   ${CAPNP_LIBRARIES}
-  capnp-rpc
+  ${CMAKE_THREAD_LIBS_INIT}
 )
 set_target_properties(experiment PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
 qt5_use_modules(experiment Core Network)
