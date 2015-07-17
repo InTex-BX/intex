@@ -12,8 +12,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-c++98-compat")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-c++98-compat-pedantic")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-padded")
 if(${GCC_TOOLCHAIN})
-  # Not really a definition, but neither a language flag for C/CXX_FLAGS
-  add_definitions(-gcc-toolchain=${GCC_TOOLCHAIN})
+  set(TOOLCHAIN "-gcc-toolchain ${GCC_TOOLCHAIN}")
 endif()
 
 if(${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "arm")
@@ -55,6 +54,20 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include_directories(common)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/common)
 
+function(add_library name)
+  set_property(GLOBAL APPEND PROPERTY INTEX_TARGETS ${name})
+  _add_library(${name} ${ARGN})
+endfunction()
+
+function(add_executable name)
+  set_property(GLOBAL APPEND PROPERTY INTEX_TARGETS ${name})
+  _add_executable(${name} ${ARGN})
+endfunction()
+
 add_subdirectory(common)
 add_subdirectory(groundstation)
 add_subdirectory(intex)
+
+get_property(INTEX_TARGETS GLOBAL PROPERTY INTEX_TARGETS)
+set_property(TARGET ${INTEX_TARGETS} APPEND PROPERTY COMPILE_FLAGS ${TOOLCHAIN})
+set_property(TARGET ${INTEX_TARGETS} APPEND PROPERTY LINK_FLAGS ${TOOLCHAIN})
