@@ -364,7 +364,7 @@ public:
       painter.restore();
     }
 
-    std::for_each(std::cbegin(anchors) + 1, std::cend(anchors),
+    std::for_each(std::begin(anchors) + 1, std::end(anchors),
                   [this, &start, &painter, width, height,
                    straightHeight](const auto &to) {
 
