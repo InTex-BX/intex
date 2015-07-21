@@ -34,8 +34,6 @@
 #include <typeindex>
 #include <cxxabi.h>
 
-#pragma clang diagnostic ignored "-Wundef"
-
 #include <capnp/rpc-twoparty.h>
 #include <capnp/rpc.capnp.h>
 #include <capnp/serialize.h>

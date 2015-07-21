@@ -10,7 +10,6 @@
 #include <QTextStream>
 
 #pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wundef"
 #pragma clang diagnostic ignored "-Wnon-virtual-dtor"
 #pragma clang diagnostic ignored "-Wweak-vtables"
 #include "rpc/intex.capnp.h"

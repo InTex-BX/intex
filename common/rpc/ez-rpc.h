@@ -22,8 +22,6 @@
 #ifndef CAPNP_EZ_RPC_H_
 #define CAPNP_EZ_RPC_H_
 
-#pragma clang diagnostic ignored "-Wundef"
-
 #include <capnp/rpc.h>
 #include <capnp/message.h>
 

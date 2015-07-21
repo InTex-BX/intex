@@ -46,6 +46,8 @@ include_directories(${CAPNP_INCLUDE_DIRS})
 add_definitions(${Boost_DEFINITIONS})
 add_definitions(${QTGSTREAMER_DEFINITIONS})
 add_definitions(${CAPNP_DEFINITIONS})
+add_definitions(-DCAPNP_HEADER_WARNINGS=0)
+add_definitions(-DKJ_HEADER_WARNINGS=0)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
