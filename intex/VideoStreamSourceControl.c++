@@ -3,40 +3,117 @@
 #include <iostream>
 
 #include <QDebug>
+#include <QFile>
+#include <QString>
+#include <QTextStream>
 
 #include "VideoStreamSourceControl.h"
 
-#ifdef INTEX_EXPERIMENT
-static const char pipeline_fmt[] =
-    "v4l2src device=/dev/video%1 name=src ! h264parse ! omxh264dec ! "
-    "videoscale ! video/x-raw,width=768,height=432,framerate=30/1 ! "
-    "omxh264enc name=encoder target_bitrate=%4 control-rate=variable ! "
-    "rtph264pay config-interval=1 ! udpsink host=%1 port=%2 sync=false";
-#else
-static const char pipeline_fmt[] =
-    "videotestsrc ! videoconvert ! rtpvrawpay ! "
-    "queue ! "
-    "udpsink host=%2 port=%3 sync=false";
-#endif
+#include "intex.h"
 
 static constexpr char encoderName[] = "encoder";
-static constexpr char sinkName[] = "udpsink0";
+static constexpr char sinkName[] = "udpsink";
 
-VideoStreamSourceControl::VideoStreamSourceControl(std::string device,
-                                                   std::string host,
-                                                   std::string port,
-                                                   unsigned bitrate)
-    : pipeline(QGst::Parse::launch(QString(pipeline_fmt)
-                                       .arg(QString::fromStdString(device),
-                                            QString::fromStdString(host),
-                                            QString::fromStdString(port),
-                                            QString::number(bitrate)))
+struct debug_tag {};
+
+static QString make_downlink(const QString &host, const QString &port) {
+  QString buf;
+  QTextStream downlink(&buf);
+  downlink << " ! queue ! omxh264dec "
+           << " ! videoscale ! video/x-raw,width=720,height=480,framerate=30/1"
+           << " ! omxh264enc name=" << encoderName
+           << " target_bitrate=400000 control-rate=variable"
+           << " ! video/x-h264, profile=(string)high, level=(string)4"
+           << " ! rtph264pay config-interval=1 ! queue"
+           << " ! udpsink host=" << host << " port=" << port
+           << " sync=false name=" << sinkName;
+  return buf;
+}
+
+static QString make_downlink(const QString &host, const QString &port,
+                             debug_tag) {
+  QString buf;
+  QTextStream downlink(&buf);
+  downlink << " ! queue "
+           << " ! videoscale ! video/x-raw,width=720,height=480,framerate=30/1"
+           << " ! rtpvrawpay ! queue"
+           << " ! udpsink host=" << host << " port=" << port
+           << " sync=false name=" << sinkName;
+  return buf;
+
+}
+
+static QString make_filesink(int replica) {
+  static constexpr char const *path_fmt = "/media/usb%1/camera/";
+  static constexpr int width = 5;
+  static constexpr char const *suffix_ = ".h264";
+  auto path = QString(path_fmt).arg(replica);
+
+  auto filenum = next_file(path, [](unsigned num) {
+    QString fname;
+    QTextStream fstream(&fname);
+    fstream << qSetFieldWidth(width) << qSetPadChar(QChar('0')) << num
+            << suffix_;
+    return fname;
+  });
+  QString buf;
+  QTextStream filesink(&buf);
+  filesink << " ! queue ! multifilesink location=" << path << "%0" << width
+           << "d" << suffix_ << " index=" << filenum << " next-file=3";
+  return buf;
+}
+
+static QString make_pipeline(const int dev, const QString &host,
+                             const QString &port, const bool debug) {
+  QString teename("h264");
+  QString buf;
+  QTextStream pipeline(&buf);
+
+  if (!debug) {
+    pipeline << "uvch264src name=cam" << dev << " device=/dev/video" << dev
+             << " initial-bitrate=5000000 peak-bitrate=5000000 "
+                "average-bitrate=3000000"
+             << " mode=mode-video rate-control=vbr auto-start=true"
+             << " iframe-period=10000 cam0.vidsrc ! h264parse";
+  } else {
+    pipeline << "videotestsrc name=cam" << dev;
+  }
+
+  pipeline << " ! queue ! tee name=" << teename << " " << teename << ".";
+
+  pipeline << (debug ? make_downlink(host, port, debug_tag{})
+                     : make_downlink(host, port));
+
+  if (!debug) {
+    try {
+      QString fsink = make_filesink(0);
+      pipeline << " " << teename << "." << fsink;
+    } catch (const std::exception &e) {
+      qDebug() << "Skipping multifilesink: "
+               << QString::fromStdString(e.what());
+    }
+
+    try {
+      QString fsink = make_filesink(1);
+      pipeline << " " << teename << "." << fsink;
+    } catch (const std::exception &e) {
+      qDebug() << "Skipping multifilesink: "
+               << QString::fromStdString(e.what());
+    }
+  }
+
+  qDebug() << buf;
+
+  return buf;
+}
+
+VideoStreamSourceControl::VideoStreamSourceControl(const int dev,
+                                                   const QString &host,
+                                                   const QString &port,
+                                                   unsigned bitrate, bool debug)
+    : pipeline(QGst::Parse::launch(make_pipeline(dev, host, port, debug))
                    .dynamicCast<QGst::Pipeline>()) {
-  qDebug() << QString(pipeline_fmt)
-                  .arg(QString::fromStdString(device),
-                       QString::fromStdString(host),
-                       QString::fromStdString(port), QString::number(bitrate));
-  //pipeline->setState(QGst::StatePlaying);
+  pipeline->setState(QGst::StatePlaying);
 }
 
 VideoStreamSourceControl::~VideoStreamSourceControl() {
