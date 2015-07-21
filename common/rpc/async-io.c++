@@ -136,7 +136,7 @@ static void setCloseOnExec(int fd) {
 }
 
 static constexpr uint NEW_FD_FLAGS =
-#if __linux__
+#ifdef __linux__
     kj::LowLevelAsyncIoProvider::ALREADY_CLOEXEC ||
     kj::LowLevelAsyncIoProvider::ALREADY_NONBLOCK ||
 #endif
@@ -429,7 +429,7 @@ public:
     int newFd;
 
   retry:
-#if __linux__
+#ifdef __linux__
     newFd = ::accept4(readFd(), nullptr, nullptr, SOCK_NONBLOCK | SOCK_CLOEXEC);
 #else
     newFd = ::accept(readFd(), nullptr, nullptr);
