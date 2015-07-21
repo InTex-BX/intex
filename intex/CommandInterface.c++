@@ -5,12 +5,14 @@
 
 #include <QDateTime>
 #include <QDebug>
+#include <QDir>
 #include <QFileInfo>
 #include <QSettings>
 #include <QTime>
 
 #include "CommandInterface.h"
 #include "VideoStreamSourceControl.h"
+#include "intex.h"
 
 InTexServer *server_instance = nullptr;
 
@@ -82,25 +84,26 @@ kj::Promise<void> InTexServer::setGPIO(SetGPIOContext context) {
 }
 
 void InTexServer::setupLogFiles() {
-  QString path_{"/media/usb%1/"};
-  QString fname{"intex.%1.log"};
+  QString path_{"/media/usb%1/log"};
+  auto fname_fmt = [](unsigned num) {
+    QString fname{"intex.%1.log"};
+    return fname.arg(num);
+  };
 
   auto date = QDateTime::currentDateTime().toString(Qt::ISODate);
   for (int log = 0; log < nr_log_locations; ++log) {
     auto path = path_.arg(log);
-    if (!QFileInfo(path).exists()) {
-      qCritical() << "Directory" << path << "does not exist. Skipping.";
+    unsigned fnum;
+
+    try {
+      fnum = next_file(path, fname_fmt);
+    } catch (const std::runtime_error &e) {
+      qCritical() << QString::fromStdString(e.what());
       continue;
     }
 
-    auto file = std::make_unique<QFile>(path + fname.arg(0));
-    for (int num = 0; file && !file->exists(); ++num) {
-      file = std::make_unique<QFile>(path + fname.arg(num));
-      if (num > max_logfiles)
-        qCritical() << "Aborting opening" << file->fileName() << "after"
-                    << max_logfiles << "retries";
-    }
-
+    QDir directory(path);
+    auto file = std::make_unique<QFile>(directory.filePath(fname_fmt(fnum)));
     if (file == nullptr) {
       qCritical() << "Could not create QFile object.";
       continue;
@@ -124,6 +127,6 @@ void InTexServer::setupLogFiles() {
 
     logs.push_back(std::move(stream));
 
-    *logs.back() << "Log created at " << date;
+    *logs.back() << "Log created at " << date << endl;
   }
 }
