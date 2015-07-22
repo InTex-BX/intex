@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 
 #include "qgst.h"
@@ -11,7 +12,8 @@ static constexpr bool debug_default() { return true; }
 #endif
 
 class VideoStreamSourceControl {
-  QGst::PipelinePtr pipeline;
+  struct Impl;
+  std::unique_ptr<Impl> d;
 
   QGst::ElementPtr getElementByName(const char *name);
 

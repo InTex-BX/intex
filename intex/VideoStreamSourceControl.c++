@@ -107,26 +107,34 @@ static QString make_pipeline(const int dev, const QString &host,
   return buf;
 }
 
+struct VideoStreamSourceControl::Impl {
+  QGst::PipelinePtr pipeline;
+
+  Impl(const int dev, const QString &host, const QString &port,
+       unsigned bitrate, const bool debug)
+      : pipeline(QGst::Parse::launch(make_pipeline(dev, host, port, debug))
+                     .dynamicCast<QGst::Pipeline>()) {
+    pipeline->setState(QGst::StatePlaying);
+  }
+  ~Impl() { pipeline->setState(QGst::StateNull); }
+};
+
 VideoStreamSourceControl::VideoStreamSourceControl(const int dev,
                                                    const QString &host,
                                                    const QString &port,
                                                    unsigned bitrate, bool debug)
-    : pipeline(QGst::Parse::launch(make_pipeline(dev, host, port, debug))
-                   .dynamicCast<QGst::Pipeline>()) {
-  pipeline->setState(QGst::StatePlaying);
+    : d(std::make_unique<Impl>(dev, host, port, bitrate, debug)) {
 }
 
-VideoStreamSourceControl::~VideoStreamSourceControl() {
-  pipeline->setState(QGst::StateNull);
-}
+VideoStreamSourceControl::~VideoStreamSourceControl() = default;
 
 QGst::ElementPtr VideoStreamSourceControl::getElementByName(const char *name) {
-  auto elem = pipeline->getElementByName(name);
+  auto elem = d->pipeline->getElementByName(name);
 
   if (!elem) {
     std::ostringstream os;
-    os << "Pipeline " << pipeline->name().toStdString() << " element '" << name
-       << "' not found.";
+    os << "Pipeline " << d->pipeline->name().toStdString() << " element '"
+       << name << "' not found.";
     throw std::runtime_error(os.str());
   }
 
