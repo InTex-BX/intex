@@ -25,6 +25,10 @@ public Q_SLOTS:
                std::function<void(bool)> succes);
   void setBitrate(const InTexFeed feed, const unsigned bitrate);
 
+private Q_SLOTS:
+  void onConnect();
+  void onDisconnect();
+
   // clang-format off
 Q_SIGNALS:
   void log(QString msg);

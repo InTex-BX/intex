@@ -1,14 +1,26 @@
 #include "IntexRpcClient.h"
 
-IntexRpcClient::IntexRpcClient(std::string host, const unsigned port)
-    : client(host.c_str(), port), intex(client.getMain<Command>()) {}
+#include <QDebug>
 
-IntexRpcClient::~IntexRpcClient() noexcept {
-  try {
-    client.~EzRpcClient();
-  } catch (...) {
-  }
+IntexRpcClient::IntexRpcClient(std::string host, const unsigned port)
+    : client(host.c_str(), port), intex(client.getMain<Command>()) {
+  connect(&client, &intex::rpc::EzRpcClient::connected, this,
+          &IntexRpcClient::onConnect);
+  connect(&client, &intex::rpc::EzRpcClient::disconnected, this,
+          &IntexRpcClient::onDisconnect);
 }
+
+IntexRpcClient::~IntexRpcClient() noexcept try {
+} catch (const kj::Exception &e) {
+  qCritical() << e.getDescription().cStr();
+} catch (const std::runtime_error &e) {
+  qCritical() << e.what();
+} catch (...) {
+  qCritical() << "Unkown error occured" << __LINE__ << __PRETTY_FUNCTION__;
+}
+
+void IntexRpcClient::onConnect() { intex = client.getMain<Command>(); }
+void IntexRpcClient::onDisconnect() { intex = client.getMain<Command>(); }
 
 void IntexRpcClient::setPort(const InTexService service, const uint16_t port) {
   auto request = intex.setPortRequest();
