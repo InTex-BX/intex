@@ -9,6 +9,10 @@ IntexRpcClient::IntexRpcClient(std::string host, const unsigned port)
           &IntexRpcClient::onConnect);
   connect(&client, &intex::rpc::EzRpcClient::disconnected, this,
           &IntexRpcClient::onDisconnect);
+  connect(&client, &intex::rpc::EzRpcClient::connected, this,
+          &IntexRpcClient::connected);
+  connect(&client, &intex::rpc::EzRpcClient::disconnected, this,
+          &IntexRpcClient::disconnected);
 }
 
 IntexRpcClient::~IntexRpcClient() noexcept try {
