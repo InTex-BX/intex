@@ -110,7 +110,7 @@ public:
   // your protocol to send large data blobs in multiple small chunks -- this is much better for
   // both security and performance. See `ReaderOptions` in `message.h` for more details.
   
-  ~EzRpcClient() noexcept(false);
+  ~EzRpcClient() noexcept;
 
   template <typename Type>
   typename Type::Client getMain();

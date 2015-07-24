@@ -47,10 +47,10 @@ public:
     threadEzContext = this;
   }
 
-  ~EzRpcContext() noexcept(false) {
-    KJ_REQUIRE(threadEzContext == this,
-               "EzRpcContext destroyed from different thread than it was created.") {
-      return;
+  ~EzRpcContext() noexcept {
+    if(threadEzContext != this) {
+      qCritical() << "EzRpcContext destroyed from different thread than it was "
+                     "created.";
     }
     threadEzContext = nullptr;
   }
@@ -132,12 +132,27 @@ struct EzRpcClient::Impl {
   kj::Maybe<kj::Own<ClientContext>> clientContext;
   // Filled in before `setupPromise` resolves.
 
+  ~Impl() noexcept try {
+  } catch (const kj::Exception &e) {
+    qCritical() << e.getDescription().cStr();
+  } catch (const std::runtime_error &e) {
+    qCritical() << e.what();
+  } catch (...) {
+    qCritical() << "Unkown error occured" << __LINE__ << __PRETTY_FUNCTION__;
+  }
 };
 
 EzRpcClient::EzRpcClient(kj::StringPtr serverAddress, uint defaultPort, ReaderOptions readerOpts)
     : impl(kj::heap<Impl>(serverAddress, defaultPort, readerOpts)) {}
 
-EzRpcClient::~EzRpcClient() noexcept(false) {}
+EzRpcClient::~EzRpcClient() noexcept try {
+} catch (const kj::Exception &e) {
+  qCritical() << e.getDescription().cStr();
+} catch (const std::runtime_error &e) {
+  qCritical() << e.what();
+} catch (...) {
+  qCritical() << "Unkown error occured" << __LINE__ << __PRETTY_FUNCTION__;
+}
 
 Capability::Client EzRpcClient::getMain() {
   KJ_IF_MAYBE(client, impl->clientContext) {
