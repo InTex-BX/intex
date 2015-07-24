@@ -44,6 +44,7 @@
 #include <kj/vector.h>
 
 #include <QCoreApplication>
+#include <QDebug>
 #include <QObject>
 #include <QSocketNotifier>
 #include <QTimer>
@@ -198,7 +199,7 @@ public:
                      });
   }
 
-  ~OwnedFileDescriptor() noexcept(false) {
+  ~OwnedFileDescriptor() {
     readNotifier.setEnabled(false);
     writeNotifier.setEnabled(false);
     exceptionNotifier.setEnabled(false);
@@ -207,10 +208,8 @@ public:
     const int fd = static_cast<int>(readNotifier.socket());
     if ((flags & kj::LowLevelAsyncIoProvider::TAKE_OWNERSHIP) &&
         close(fd) < 0) {
-      KJ_FAIL_SYSCALL("close", errno, fd) {
-        // Recoverable exceptions are safe in destructors.
-        break;
-      }
+      qDebug() << "Closing FD" << fd << "failed (" << errno << ")"
+               << strerror(errno) << ".";
     }
   }
 
@@ -255,7 +254,7 @@ private:
 class QtIoStream : public OwnedFileDescriptor, public kj::AsyncIoStream {
 public:
   QtIoStream(int fd, uint flags) : OwnedFileDescriptor(fd, flags) {}
-  virtual ~QtIoStream() noexcept(false) {}
+  virtual ~QtIoStream() = default;
 
   kj::Promise<size_t> read(void *buffer, size_t minBytes,
                            size_t maxBytes) override {
