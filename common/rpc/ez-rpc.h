@@ -109,17 +109,6 @@ public:
   // messages or messages. However, it is recommended that you instead think about how to change
   // your protocol to send large data blobs in multiple small chunks -- this is much better for
   // both security and performance. See `ReaderOptions` in `message.h` for more details.
-
-#if 0
-  EzRpcClient(const struct sockaddr* serverAddress, capnp::uint addrSize,
-              capnp::ReaderOptions readerOpts = capnp::ReaderOptions());
-  // Like the above constructor, but connects to an already-resolved socket address.  Any address
-  // format supported by `kj::Network` in `kj/async-io.h` is accepted.
-
-  explicit EzRpcClient(int socketFd, capnp::ReaderOptions readerOpts = capnp::ReaderOptions());
-  // Create a client on top of an already-connected socket.
-  // `readerOpts` acts as in the first constructor.
-#endif
   
   ~EzRpcClient() noexcept(false);
 
@@ -171,18 +160,6 @@ public:
   // messages or messages. However, it is recommended that you instead think about how to change
   // your protocol to send large data blobs in multiple small chunks -- this is much better for
   // both security and performance. See `ReaderOptions` in `message.h` for more details.
-#if 0
-  EzRpcServer(Capability::Client mainInterface, struct sockaddr* bindAddress, uint addrSize,
-              ReaderOptions readerOpts = ReaderOptions());
-  // Like the above constructor, but binds to an already-resolved socket address.  Any address
-  // format supported by `kj::Network` in `kj/async-io.h` is accepted.
-
-  EzRpcServer(Capability::Client mainInterface, int socketFd, uint port,
-              ReaderOptions readerOpts = ReaderOptions());
-  // Create a server on top of an already-listening socket (i.e. one on which accept() may be
-  // called).  `port` is returned by `getPort()` -- it serves no other purpose.
-  // `readerOpts` acts as in the other two above constructors.
-#endif
 
   ~EzRpcServer() noexcept(false);
 

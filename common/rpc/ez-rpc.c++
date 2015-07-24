@@ -132,35 +132,6 @@ struct EzRpcClient::Impl {
   kj::Maybe<kj::Own<ClientContext>> clientContext;
   // Filled in before `setupPromise` resolves.
 
-  Impl(kj::StringPtr serverAddress, uint defaultPort,
-       ReaderOptions readerOpts)
-      : context(EzRpcContext::getThreadLocal()),
-        setupPromise(context->getIoProvider().getNetwork()
-            .parseAddress(serverAddress, defaultPort)
-            .then([readerOpts](kj::Own<kj::NetworkAddress>&& addr) {
-              return connectAttach(kj::mv(addr));
-            }).then([this, readerOpts](kj::Own<kj::AsyncIoStream>&& stream) {
-              clientContext = kj::heap<ClientContext>(kj::mv(stream),
-                                                      readerOpts);
-            }).fork()) {}
-
-  Impl(const struct sockaddr* serverAddress, uint addrSize,
-       ReaderOptions readerOpts)
-      : context(EzRpcContext::getThreadLocal()),
-        setupPromise(
-            connectAttach(context->getIoProvider().getNetwork()
-                .getSockaddr(serverAddress, addrSize))
-            .then([this, readerOpts](kj::Own<kj::AsyncIoStream>&& stream) {
-              clientContext = kj::heap<ClientContext>(kj::mv(stream),
-                                                      readerOpts);
-            }).fork()) {}
-
-  Impl(int socketFd, ReaderOptions readerOpts)
-      : context(EzRpcContext::getThreadLocal()),
-        setupPromise(kj::Promise<void>(kj::READY_NOW).fork()),
-        clientContext(kj::heap<ClientContext>(
-            context->getLowLevelIoProvider().wrapSocketFd(socketFd),
-            readerOpts)) {}
 };
 
 EzRpcClient::EzRpcClient(kj::StringPtr serverAddress, uint defaultPort, ReaderOptions readerOpts)
