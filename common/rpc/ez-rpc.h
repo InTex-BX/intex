@@ -25,6 +25,8 @@
 #include <capnp/rpc.h>
 #include <capnp/message.h>
 
+#include <QObject>
+
 struct sockaddr;
 
 namespace kj { class AsyncIoProvider; class LowLevelAsyncIoProvider; }
@@ -34,7 +36,8 @@ namespace rpc {
 
 class EzRpcContext;
 
-class EzRpcClient {
+class EzRpcClient : public QObject {
+  Q_OBJECT
   // Super-simple interface for setting up a Cap'n Proto RPC client.  Example:
   //
   //     # Cap'n Proto schema
@@ -132,6 +135,12 @@ public:
 private:
   struct Impl;
   kj::Own<Impl> impl;
+
+  // clang-format off
+Q_SIGNALS:
+  void connected();
+  void disconnected();
+  // clang-format on
 };
 
 class EzRpcServer {

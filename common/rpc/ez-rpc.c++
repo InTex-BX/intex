@@ -20,11 +20,16 @@
 // THE SOFTWARE.
 
 #include <map>
+#include <chrono>
+#include <stdexcept>
 
 #include <capnp/rpc-twoparty.h>
 #include <capnp/rpc.capnp.h>
 #include <kj/debug.h>
 #include <kj/threadlocal.h>
+
+#include <QDebug>
+#include <QTimer>
 
 #include "async-io.h"
 #include "ez-rpc.h"
@@ -87,7 +92,13 @@ connectAttach(kj::Own<kj::NetworkAddress> &&addr) {
   return addr->connect().attach(kj::mv(addr));
 }
 
-struct EzRpcClient::Impl {
+struct EzRpcClient::Impl : public QObject {
+  Q_OBJECT
+
+public:
+  kj::StringPtr serverAddress_;
+  uint defaultPort_;
+  ReaderOptions readerOpts_;
   kj::Own<EzRpcContext> context;
 
   struct ClientContext {
@@ -114,7 +125,8 @@ struct EzRpcClient::Impl {
       memset(scratch, 0, sizeof(scratch));
       MallocMessageBuilder message(scratch);
 
-      auto hostIdOrphan = message.getOrphanage().newOrphan<rpc::twoparty::VatId>();
+      auto hostIdOrphan =
+          message.getOrphanage().newOrphan<rpc::twoparty::VatId>();
       auto hostId = hostIdOrphan.get();
       hostId.setSide(rpc::twoparty::Side::SERVER);
 
@@ -127,10 +139,49 @@ struct EzRpcClient::Impl {
     }
   };
 
-  kj::ForkedPromise<void> setupPromise;
+  decltype(auto) connect() {
+    using namespace std::literals::chrono_literals;
+    Q_EMIT disconnected();
+    return context->getIoProvider()
+        .getNetwork()
+        .parseAddress(serverAddress_, defaultPort_)
+        .then([](kj::Own<kj::NetworkAddress> &&addr) {
+          return connectAttach(kj::mv(addr));
+        })
+        .then(
+            [this](kj::Own<kj::AsyncIoStream> &&stream) {
+              auto ctx = kj::heap<ClientContext>(kj::mv(stream), readerOpts_);
+              ctx->network.onDisconnect()
+                  .then([this]() {
+                    QTimer::singleShot((1000ms).count(), this,
+                                       &Impl::reconnect);
+                  })
+                  .detach([](auto &&exception) {
+                    qDebug() << exception.getDescription().cStr();
+                  });
+              clientContext = kj::mv(ctx);
+              Q_EMIT connected();
+            },
+            [this](auto &&exception) {
+              qDebug() << exception.getDescription().cStr();
+              QTimer::singleShot((1000ms).count(), this, &Impl::reconnect);
+            })
+        .fork();
+  }
 
+  void reconnect() { setupPromise = kj::heap(connect()); }
+
+  kj::Own<kj::ForkedPromise<void>> setupPromise;
   kj::Maybe<kj::Own<ClientContext>> clientContext;
   // Filled in before `setupPromise` resolves.
+
+  Impl(EzRpcClient *parent, kj::StringPtr serverAddress, uint defaultPort,
+       ReaderOptions readerOpts)
+      : serverAddress_(serverAddress), defaultPort_(defaultPort),
+        readerOpts_(readerOpts), context(EzRpcContext::getThreadLocal()) {
+    QObject::connect(this, &Impl::connected, parent, &EzRpcClient::connected);
+    setupPromise = kj::heap<kj::ForkedPromise<void>>(connect());
+  }
 
   ~Impl() noexcept try {
   } catch (const kj::Exception &e) {
@@ -140,10 +191,17 @@ struct EzRpcClient::Impl {
   } catch (...) {
     qCritical() << "Unkown error occured" << __LINE__ << __PRETTY_FUNCTION__;
   }
+
+// clang-format off
+Q_SIGNALS:
+  void connected();
+  void disconnected();
+// clang-format on
 };
 
-EzRpcClient::EzRpcClient(kj::StringPtr serverAddress, uint defaultPort, ReaderOptions readerOpts)
-    : impl(kj::heap<Impl>(serverAddress, defaultPort, readerOpts)) {}
+EzRpcClient::EzRpcClient(kj::StringPtr serverAddress, uint defaultPort,
+                         ReaderOptions readerOpts)
+    : impl(kj::heap<Impl>(this, serverAddress, defaultPort, readerOpts)) {}
 
 EzRpcClient::~EzRpcClient() noexcept try {
 } catch (const kj::Exception &e) {
@@ -158,7 +216,7 @@ Capability::Client EzRpcClient::getMain() {
   KJ_IF_MAYBE(client, impl->clientContext) {
     return client->get()->getMain();
   } else {
-    return impl->setupPromise.addBranch().then([this]() {
+    return impl->setupPromise->addBranch().then([this]() {
       return KJ_ASSERT_NONNULL(impl->clientContext)->getMain();
     });
   }
@@ -319,3 +377,7 @@ kj::LowLevelAsyncIoProvider& EzRpcServer::getLowLevelIoProvider() {
 
 } // namespace rpc
 } // namespace intex
+
+#pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
+#include "ez-rpc.moc"
+#include "moc_ez-rpc.cpp"
