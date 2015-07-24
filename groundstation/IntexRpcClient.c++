@@ -3,7 +3,8 @@
 #include <QDebug>
 
 IntexRpcClient::IntexRpcClient(std::string host, const unsigned port)
-    : client(host.c_str(), port), intex(client.getMain<Command>()) {
+    : host_(std::move(host)), client(host_.c_str(), port),
+      intex(client.getMain<Command>()) {
   connect(&client, &intex::rpc::EzRpcClient::connected, this,
           &IntexRpcClient::onConnect);
   connect(&client, &intex::rpc::EzRpcClient::disconnected, this,

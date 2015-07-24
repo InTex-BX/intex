@@ -12,6 +12,7 @@
 class IntexRpcClient : public QObject {
   Q_OBJECT
 
+  std::string host_;
   intex::rpc::EzRpcClient client;
   Command::Client intex;
 
