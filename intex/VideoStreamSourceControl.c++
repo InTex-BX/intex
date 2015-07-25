@@ -254,7 +254,7 @@ public:
   }
 };
 
-static GstPadProbeReturn iFrameProbe(GstPad *pad, GstPadProbeInfo *info,
+static GstPadProbeReturn iFrameProbe(GstPad *, GstPadProbeInfo *info,
                                      gpointer user_data) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wold-style-cast"
