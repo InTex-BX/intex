@@ -30,7 +30,8 @@ boost::asio::ip::tcp::endpoint intex_control() {
 namespace intex {
 static QString subdirectory(const enum Subsystem subsys) {
   switch (subsys) {
-  case Subsystem::Video:
+  case Subsystem::Video0:
+  case Subsystem::Video1:
     return "camera";
   case Subsystem::Log:
     return "log";
@@ -43,7 +44,8 @@ static QString subdirectory(const enum Subsystem subsys) {
 
 static QString suffix(const enum Subsystem subsys) {
   switch (subsys) {
-  case Subsystem::Video:
+  case Subsystem::Video0:
+  case Subsystem::Video1:
     return ".mkv";
   case Subsystem::Log:
     return ".log";
