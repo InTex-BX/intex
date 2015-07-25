@@ -334,6 +334,7 @@ QGst::ElementPtr VideoStreamSourceControl::getElementByName(const char *name) {
     std::ostringstream os;
     os << "Pipeline " << d->pipeline->name().toStdString() << " element '"
        << name << "' not found.";
+    qDebug() << "Element " << name << " not found";
     throw std::runtime_error(os.str());
   }
 
