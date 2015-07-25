@@ -258,3 +258,4 @@ void Valve::set(const bool state) {
 }
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
 #include "IntexHardware.moc"
+#include "moc_IntexHardware.cpp"
