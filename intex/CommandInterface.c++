@@ -17,8 +17,8 @@
 InTexServer *server_instance = nullptr;
 
 InTexServer::InTexServer()
-    : source0("127.0.0.1", "5000", ""), valve0(intex::hw::config::valve0),
-      valve1(intex::hw::config::valve1) {
+    : source0(intex::Subsystem::Video0, "grace.local", "5000"),
+      valve0(intex::hw::config::valve0), valve1(intex::hw::config::valve1) {
   server_instance = this;
 
   syslog_socket.connectToHost("localhost", 4003, QIODevice::WriteOnly,

@@ -4,6 +4,7 @@
 #include <string>
 
 #include "qgst.h"
+#include "intex.h"
 
 #ifdef BUILD_ON_RASPBERRY
 static constexpr bool debug_default() { return false; }
@@ -18,8 +19,9 @@ class VideoStreamSourceControl {
   QGst::ElementPtr getElementByName(const char *name);
 
 public:
-  VideoStreamSourceControl(const int device, const QString &host,
-                           const QString &port, unsigned bitrate = 400000,
+  VideoStreamSourceControl(const enum intex::Subsystem subsystem,
+                           const QString &host, const QString &port,
+                           unsigned bitrate = 400000,
                            bool debug = debug_default());
   ~VideoStreamSourceControl();
   void setBitrate(const uint64_t bitrate);

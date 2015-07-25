@@ -39,6 +39,7 @@ find_package(CapnProto REQUIRED)
 
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${GSTREAMER_INCLUDE_DIRS})
+include_directories(${GSTREAMER_VIDEO_INCLUDE_DIRS})
 include_directories(${GOBJECT_INCLUDE_DIRS})
 include_directories(${QTGSTREAMER_INCLUDES})
 include_directories(${CAPNP_INCLUDE_DIRS})

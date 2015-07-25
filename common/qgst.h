@@ -11,6 +11,7 @@
 #include <QGst/ElementFactory>
 #include <QGst/Event>
 #include <QGst/Fraction>
+#include <QGst/GhostPad>
 #include <QGst/Init>
 #include <QGst/Message>
 #include <QGst/Pad>
