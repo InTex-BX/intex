@@ -163,11 +163,12 @@ public:
     bin->setState(QGst::StateNull);
   }
 
-  explicit operator QGst::ElementPtr() { return bin.staticCast<QGst::Element>(); }
+  explicit operator QGst::ElementPtr() {
+    return bin.staticCast<QGst::Element>();
+  }
   explicit operator const QGst::ElementPtr() const {
     return bin.staticCast<QGst::Element>();
   }
-  QGst::PadPtr sinkPad() { return check_nonnull(bin->getStaticPad("sink")); }
 };
 
 static GstPadProbeReturn iFrameProbe(GstPad *pad, GstPadProbeInfo *info,
