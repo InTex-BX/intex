@@ -1,5 +1,3 @@
-#include "intex.h"
-
 #include <stdexcept>
 #include <sstream>
 
@@ -15,6 +13,8 @@
 #include <QFileInfo>
 #include <QTextStream>
 
+#include "intex.h"
+
 boost::asio::ip::address intex_ip() {
   return boost::asio::ip::address::from_string("172.16.18.162");
 }
@@ -27,29 +27,70 @@ boost::asio::ip::tcp::endpoint intex_control() {
   return boost::asio::ip::tcp::endpoint(intex_ip(), intex_control_port);
 }
 
-unsigned next_file(const QString &path, filename_formatter fname) {
-  const unsigned max_files = 100000;
-  unsigned result;
+namespace intex {
+static QString subdirectory(const enum Subsystem subsys) {
+  switch (subsys) {
+  case Subsystem::Video:
+    return "camera";
+  case Subsystem::Log:
+    return "log";
+  case Subsystem::Temperature:
+    return "temperature";
+  case Subsystem::Pressure:
+    return "pressure";
+  }
+}
 
-  QFileInfo directory(path);
-  if (!directory.exists()) {
-    throw std::runtime_error("Directory " + path.toStdString() +
+static QString suffix(const enum Subsystem subsys) {
+  switch (subsys) {
+  case Subsystem::Video:
+    return ".mkv";
+  case Subsystem::Log:
+    return ".log";
+  case Subsystem::Temperature:
+    return "";
+  case Subsystem::Pressure:
+    return "";
+  }
+}
+
+QString storageLocation(int replica, const enum Subsystem subsys,
+                        unsigned int *last) {
+  const unsigned max_files = 100000;
+  const unsigned reboot = 0;
+  QFileInfo basepath(
+      QString("/media/usb%1/%2").arg(replica).arg(subdirectory(subsys)));
+
+  if (!basepath.exists()) {
+    throw std::runtime_error("Directory " +
+                             basepath.absolutePath().toStdString() +
                              " does not exist.");
   }
 
-  if (!directory.isDir()) {
-    throw std::runtime_error(path.toStdString() + " is not a directory.");
+  if (!basepath.isDir()) {
+    throw std::runtime_error(basepath.absolutePath().toStdString() +
+                             " is not a directory.");
   }
 
-  for (result = 0; result < max_files; ++result) {
-    auto file = directory.dir().filePath(fname(result));
-    if (!QFileInfo::exists(file)) {
-      qDebug() << "File " << file << " does not yet exist.";
-      return result;
+  auto directory = basepath.dir();
+  auto suffix_ = suffix(subsys);
+  auto start = (last != nullptr) ? *last : 0;
+
+  for (auto fileno = start; fileno < max_files; ++fileno) {
+    auto file = directory.filePath(QString("%1-%2.%3")
+                                       .arg(reboot, 3, 10, QChar('0'))
+                                       .arg(fileno, 5, 10, QChar('0'))
+                                       .arg(suffix_));
+    if (QFileInfo::exists(file)) {
+      qDebug() << "Choosing file" << file;
+      if (last != nullptr)
+        *last = fileno;
+      return file;
     } else {
-      qDebug() << "File " << file << " already exist.";
+      qDebug() << "Skipping existing file" << file;
     }
   }
 
   throw std::runtime_error("Maximum number of files reached.");
+}
 }

@@ -83,50 +83,39 @@ kj::Promise<void> InTexServer::setGPIO(SetGPIOContext context) {
   throw std::runtime_error("GPIO not implemented.");
 }
 
+
 void InTexServer::setupLogFiles() {
-  QString path_{"/media/usb%1/log"};
-  auto fname_fmt = [](unsigned num) {
-    QString fname{"intex.%1.log"};
-    return fname.arg(num);
-  };
-
   auto date = QDateTime::currentDateTime().toString(Qt::ISODate);
-  for (int log = 0; log < nr_log_locations; ++log) {
-    auto path = path_.arg(log);
-    unsigned fnum;
 
+  for (int log = 0; log < nr_log_locations; ++log) {
     try {
-      fnum = next_file(path, fname_fmt);
+      auto file =
+          std::make_unique<QFile>(storageLocation(log, intex::Subsystem::Log));
+      if (file == nullptr) {
+        throw std::runtime_error("Could not create QFile object.");
+      }
+
+      if (!file->open(QIODevice::WriteOnly | QIODevice::Append |
+                      QIODevice::Text)) {
+        throw std::runtime_error("Could not open log file " +
+                                 file->fileName().toStdString() +
+                                 " for writing.");
+      }
+
+      auto stream = std::make_unique<QTextStream>(file.get());
+      if (stream == nullptr) {
+        throw std::runtime_error(
+            "Could not create QTextStream object for log file " +
+            file->fileName().toStdString() + ".");
+      }
+
+      files.push_back(std::move(file));
+      logs.push_back(std::move(stream));
+
+      *logs.back() << "Log created at " << date << endl;
     } catch (const std::runtime_error &e) {
       qCritical() << QString::fromStdString(e.what());
       continue;
     }
-
-    QDir directory(path);
-    auto file = std::make_unique<QFile>(directory.filePath(fname_fmt(fnum)));
-    if (file == nullptr) {
-      qCritical() << "Could not create QFile object.";
-      continue;
-    }
-
-    if (!file->open(QIODevice::WriteOnly | QIODevice::Append |
-                    QIODevice::Text)) {
-      qCritical() << "Could not open log file" << file->fileName()
-                  << "for writing.";
-      continue;
-    }
-
-    files.push_back(std::move(file));
-
-    auto stream = std::make_unique<QTextStream>(files.back().get());
-    if (stream == nullptr) {
-      qCritical() << "Could not create QTextStream object for log file"
-                  << file->fileName() << ".";
-      continue;
-    }
-
-    logs.push_back(std::move(stream));
-
-    *logs.back() << "Log created at " << date << endl;
   }
 }
