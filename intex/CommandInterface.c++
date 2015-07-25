@@ -87,7 +87,7 @@ kj::Promise<void> InTexServer::setGPIO(SetGPIOContext context) {
 void InTexServer::setupLogFiles() {
   auto date = QDateTime::currentDateTime().toString(Qt::ISODate);
 
-  for (int log = 0; log < nr_log_locations; ++log) {
+  for (unsigned int log = 0; log < nr_log_locations; ++log) {
     try {
       auto file =
           std::make_unique<QFile>(storageLocation(log, intex::Subsystem::Log));

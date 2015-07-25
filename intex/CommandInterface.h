@@ -19,7 +19,7 @@
 #include "IntexHardware.h"
 
 class InTexServer final : public Command::Server {
-  static constexpr int nr_log_locations = 2;
+  static constexpr unsigned int nr_log_locations = 2;
   static constexpr int max_logfiles = 10000;
 
   QUdpSocket syslog_socket;
