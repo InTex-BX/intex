@@ -77,20 +77,37 @@ static QString make_sinkbin(const int replica) {
   return buf;
 }
 
-static QGst::PipelinePtr make_pipeline(const int dev, const QString &host,
-                                       const QString &port, const bool debug) {
+static QString toVideoDevice(const enum intex::Subsystem subsys) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wswitch-enum"
+  /* TODO: we might actually have to do a dynamic lookup */
+  switch (subsys) {
+  case intex::Subsystem::Video0:
+    return "/dev/video0";
+  case intex::Subsystem::Video1:
+    return "/dev/video1";
+  default:
+    throw std::runtime_error("Subsystem not supported.");
+  }
+#pragma clang diagnostic pop
+}
+
+static QGst::PipelinePtr make_pipeline(const enum intex::Subsystem subsys,
+                                       const QString &host, const QString &port,
+                                       const bool debug) {
   QString teename("h264");
   QString buf;
   QTextStream pipeline(&buf);
 
   if (!debug) {
-    pipeline << "uvch264src name=cam" << dev << " device=/dev/video" << dev
+    pipeline << "uvch264src name=" << deviceName(subsys)
+             << " device=" << toVideoDevice(subsys)
              << " initial-bitrate=5000000 peak-bitrate=5000000 "
                 "average-bitrate=3000000"
              << " mode=mode-video rate-control=vbr auto-start=true"
              << " iframe-period=1 cam0.vidsrc ! h264parse";
   } else {
-    pipeline << "videotestsrc name=cam" << dev;
+    pipeline << "videotestsrc name=" << deviceName(subsys);
   }
 
   pipeline << " ! queue ! tee name=" << teename << " " << teename << ".";
@@ -276,7 +293,7 @@ struct VideoStreamSourceControl::Impl {
 
   Impl(const enum intex::Subsystem subsystem, const QString &host,
        const QString &port, unsigned bitrate, const bool debug)
-      : pipeline(make_pipeline(0, host, port, debug)),
+      : pipeline(make_pipeline(subsystem, host, port, debug)),
         replica0(0, subsystem, pipeline), replica1(1, subsystem, pipeline) {
     if (subsystem != intex::Subsystem::Video0 &&
         subsystem != intex::Subsystem::Video1) {
