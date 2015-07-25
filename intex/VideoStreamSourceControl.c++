@@ -350,3 +350,7 @@ void VideoStreamSourceControl::setPort(const uint16_t port) {
   std::cout << "Setting port: " << port << std::endl;
   getElementByName(sinkName)->setProperty("port", static_cast<gint>(port));
 }
+
+void VideoStreamSourceControl::start() { d->start(); }
+void VideoStreamSourceControl::stop() { d->stop(); }
+void VideoStreamSourceControl::next() { d->next(); }
