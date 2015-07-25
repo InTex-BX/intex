@@ -57,7 +57,7 @@ static QString suffix(const enum Subsystem subsys) {
   }
 }
 
-static QString deviceName(const enum Subsystem subsys) {
+QString deviceName(const enum Subsystem subsys) {
   switch (subsys) {
   case Subsystem::Video0:
     return "cam0";
