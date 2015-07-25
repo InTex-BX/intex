@@ -56,6 +56,17 @@ static QString suffix(const enum Subsystem subsys) {
   }
 }
 
+static QString deviceName(const enum Subsystem subsys) {
+  switch (subsys) {
+  case Subsystem::Video0:
+    return "cam0";
+  case Subsystem::Video1:
+    return "cam1";
+  }
+
+  throw std::runtime_error("Not implemented.");
+}
+
 QString storageLocation(int replica, const enum Subsystem subsys,
                         unsigned int *last) {
   const unsigned max_files = 100000;
@@ -76,10 +87,12 @@ QString storageLocation(int replica, const enum Subsystem subsys,
 
   auto directory = basepath.dir();
   auto suffix_ = suffix(subsys);
+  auto devName = deviceName(subsys);
   auto start = (last != nullptr) ? *last : 0;
 
   for (auto fileno = start; fileno < max_files; ++fileno) {
-    auto file = directory.filePath(QString("%1-%2.%3")
+    auto file = directory.filePath(QString("%1%-2-%3.%4")
+                                       .arg(devName)
                                        .arg(reboot, 3, 10, QChar('0'))
                                        .arg(fileno, 5, 10, QChar('0'))
                                        .arg(suffix_));
