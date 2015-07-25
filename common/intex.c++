@@ -67,7 +67,7 @@ static QString deviceName(const enum Subsystem subsys) {
   throw std::runtime_error("Not implemented.");
 }
 
-QString storageLocation(int replica, const enum Subsystem subsys,
+QString storageLocation(unsigned int replica, const enum Subsystem subsys,
                         unsigned int *last) {
   const unsigned max_files = 100000;
   const unsigned reboot = 0;
