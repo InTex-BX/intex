@@ -32,7 +32,7 @@ static QString subdirectory(const enum Subsystem subsys) {
   switch (subsys) {
   case Subsystem::Video0:
   case Subsystem::Video1:
-    return "camera";
+    return "video";
   case Subsystem::Log:
     return "log";
   case Subsystem::Temperature:
