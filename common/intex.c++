@@ -11,6 +11,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QFileInfo>
+#include <QStandardPaths>
 #include <QTextStream>
 
 #include "intex.h"
@@ -67,12 +68,45 @@ static QString deviceName(const enum Subsystem subsys) {
   throw std::runtime_error("Not implemented.");
 }
 
+static void cdCreateSubdir(QDir &directory, QString subdir) {
+  if (!directory.cd(subdir)) {
+    qDebug() << "Creating directory" << directory.filePath(subdir);
+    directory.mkdir(subdir);
+    if (!directory.cd(subdir))
+      throw std::runtime_error(std::string("Could not create '") +
+                               subdir.toLatin1().data() + "' directory in " +
+                               directory.absolutePath().toLatin1().data());
+  }
+}
+
+static QFileInfo initializeDataDirectory(const unsigned int replica,
+                                         const enum Subsystem subsys) {
+#ifdef BUILD_ON_RASPBERRY
+  return QFileInfo(
+      QString("/media/usb%1/%2").arg(replica).arg(subdirectory(subsys)));
+#else
+  QDir basePath{
+      QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)};
+
+  if(!basePath.exists()) {
+    throw std::runtime_error(std::string("Document directory ") +
+                             basePath.absolutePath().toLatin1().data() +
+                             " does not exist.");
+  }
+
+  cdCreateSubdir(basePath, "intex");
+  cdCreateSubdir(basePath, "data");
+  cdCreateSubdir(basePath, QString("usb%1").arg(replica));
+  cdCreateSubdir(basePath, subdirectory(subsys));
+  return basePath.absolutePath();
+#endif
+}
+
 QString storageLocation(unsigned int replica, const enum Subsystem subsys,
                         unsigned int *last) {
   const unsigned max_files = 100000;
   const unsigned reboot = 0;
-  QFileInfo basepath(
-      QString("/media/usb%1/%2").arg(replica).arg(subdirectory(subsys)));
+  QFileInfo basepath(initializeDataDirectory(replica, subsys));
 
   if (!basepath.exists()) {
     throw std::runtime_error("Directory " +
