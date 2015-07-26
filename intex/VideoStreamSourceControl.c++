@@ -172,6 +172,12 @@ class StreamFileSink {
   QGst::ElementPtr fakesink;
   std::function<QString(void)> storageLocation;
 
+  enum class output_selector_mode : int {
+    none = 0,
+    all = 1,
+    active = 2,
+  };
+
   std::array<QGst::PadPtr, 3> pads;
   std::array<MultiFileSink, 2> sinks;
   size_t current = 0;
@@ -206,7 +212,9 @@ public:
         storageLocation([replica, subsystem] {
           return intex::storageLocation(replica, subsystem);
         }) {
-    selector->setProperty("pad-negotiation-mode", "active");
+    /* select active pad */
+    selector->setProperty("pad-negotiation-mode",
+                          static_cast<int>(output_selector_mode::active));
     fakesink->setProperty("async", 0);
     pipeline->add(queue, selector, fakesink);
     pipeline->linkMany(queue, selector, fakesink);
