@@ -130,7 +130,7 @@ QString storageLocation(unsigned int replica, const enum Subsystem subsys,
                                        .arg(reboot, 3, 10, QChar('0'))
                                        .arg(fileno, 5, 10, QChar('0'))
                                        .arg(suffix_));
-    if (QFileInfo::exists(file)) {
+    if (!QFileInfo::exists(file)) {
       qDebug() << "Choosing file" << file;
       if (last != nullptr)
         *last = fileno;
