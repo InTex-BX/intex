@@ -67,16 +67,6 @@ decltype(auto) check_nonnull_impl(T &&t, int lineno, const char *func) {
   return std::forward<T>(t);
 }
 
-static QString make_sinkbin(const int replica) {
-  QString buf;
-  QTextStream filesink(&buf);
-  filesink << " ! queue ! output-selector name=s" << replica
-           << " pad-negotiation-mode=active";
-  filesink << " s" << replica << ". ! fakesink async=0 name=c" << replica;
-
-  return buf;
-}
-
 static QString toVideoDevice(const enum intex::Subsystem subsys) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wswitch-enum"
@@ -114,24 +104,6 @@ static QGst::PipelinePtr make_pipeline(const enum intex::Subsystem subsys,
 
   pipeline << (debug ? make_downlink(host, port, debug_tag{})
                      : make_downlink(host, port));
-
-  if (!debug) {
-    try {
-      QString fsink = make_sinkbin(0);
-      pipeline << " " << teename << "." << fsink;
-    } catch (const std::exception &e) {
-      qDebug() << "Skipping multifilesink: "
-               << QString::fromStdString(e.what());
-    }
-
-    try {
-      QString fsink = make_sinkbin(1);
-      pipeline << " " << teename << "." << fsink;
-    } catch (const std::exception &e) {
-      qDebug() << "Skipping multifilesink: "
-               << QString::fromStdString(e.what());
-    }
-  }
 
   qDebug() << buf;
 
