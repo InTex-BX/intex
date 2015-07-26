@@ -232,6 +232,8 @@ public:
                                               ->getStaticPad("sink"))
                          ->peer();
                    });
+    auto tee = check_nonnull(pipeline->getElementByName("h264"));
+    tee->link(queue);
   }
 
   void start() {
