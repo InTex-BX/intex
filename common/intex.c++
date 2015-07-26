@@ -47,9 +47,9 @@ static QString suffix(const enum Subsystem subsys) {
   switch (subsys) {
   case Subsystem::Video0:
   case Subsystem::Video1:
-    return ".mkv";
+    return "mkv";
   case Subsystem::Log:
-    return ".log";
+    return "log";
   case Subsystem::Temperature:
     return "";
   case Subsystem::Pressure:
