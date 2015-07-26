@@ -123,7 +123,11 @@ class MultiFileSink {
 public:
   MultiFileSink()
       : bin(check_nonnull(QGst::Bin::create())),
+#ifdef BUILD_ON_RASPBERRY
         parser(check_nonnull(QGst::ElementFactory::make("h264parse"))),
+#else
+        parser(check_nonnull(QGst::ElementFactory::make("videoconvert"))),
+#endif
         muxer(check_nonnull(QGst::ElementFactory::make("matroskamux"))),
         filesink(check_nonnull(QGst::ElementFactory::make("filesink"))) {
     filesink->setProperty("async", 0);
