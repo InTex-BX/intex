@@ -125,7 +125,7 @@ QString storageLocation(unsigned int replica, const enum Subsystem subsys,
   auto start = (last != nullptr) ? *last : 0;
 
   for (auto fileno = start; fileno < max_files; ++fileno) {
-    auto file = directory.filePath(QString("%1%-2-%3.%4")
+    auto file = directory.filePath(QString("%1-%2-%3.%4")
                                        .arg(devName)
                                        .arg(reboot, 3, 10, QChar('0'))
                                        .arg(fileno, 5, 10, QChar('0'))
