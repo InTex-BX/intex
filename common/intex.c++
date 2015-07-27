@@ -110,12 +110,12 @@ QString storageLocation(unsigned int replica, const enum Subsystem subsys,
 
   if (!basepath.exists()) {
     throw std::runtime_error("Directory " +
-                             basepath.absolutePath().toStdString() +
+                             basepath.absoluteFilePath().toStdString() +
                              " does not exist.");
   }
 
   if (!basepath.isDir()) {
-    throw std::runtime_error(basepath.absolutePath().toStdString() +
+    throw std::runtime_error(basepath.absoluteFilePath().toStdString() +
                              " is not a directory.");
   }
 
