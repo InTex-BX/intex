@@ -11,6 +11,7 @@
 #include "IntexHardware.h"
 
 using namespace std::chrono;
+using namespace std::literals::chrono_literals;
 
 namespace intex {
 namespace hw {
