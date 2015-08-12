@@ -26,6 +26,7 @@ enum InTexService {
   atmosphericPressure @3;
   innerTemperature @4;
   outerTemperature @5;
+  log @6;
 }
 
 enum InTexHW {
