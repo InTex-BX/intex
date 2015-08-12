@@ -60,5 +60,20 @@ Q_SIGNALS:
   void log(QString msg);
   // clang-format on
 };
+
+class Heater : public QObject {
+  Q_OBJECT
+
+  class Impl;
+  std::unique_ptr<Impl> d;
+
+public:
+  /* add timeout on temperatureChanged */
+  Heater(const config::gpio &config, int low, int high);
+  ~Heater();
+
+  void set(const bool on);
+  void temperatureChanged(int temperature);
+};
 }
 }

@@ -297,6 +297,65 @@ void Valve::set(const bool state) {
   else
     d->pwm.stop();
 }
+
+class Heater::Impl {
+  PWM pwm;
+  GPIO pin;
+  QTimer timer;
+  int low_;
+  int high_;
+  milliseconds timeout_;
+
+public:
+  template <class Rep, class Period>
+  Impl(const config::gpio &config, int low, int high,
+       duration<Rep, Period> timeout)
+      : pwm(2s, 0.1f),
+#ifdef BUILD_ON_RASPBERRY
+        pin(::intex::hw::gpio(config)),
+#else
+        pin(::intex::hw::debug_gpio(config)),
+#endif
+        low_(low), high_(high), timeout_(duration_cast<milliseconds>(timeout)) {
+    QObject::connect(&pwm, &PWM::on, &pin, &GPIO::on);
+    QObject::connect(&pwm, &PWM::off, &pin, &GPIO::off);
+    QObject::connect(&timer, &QTimer::timeout, [this]() { stop(); });
+  }
+
+  void start() {
+    pwm.start();
+    timer.start(static_cast<int>(timeout_.count()));
+  }
+  void stop() {
+    pwm.stop();
+    timer.stop();
+  }
+  void temperatureChanged(int temperature) {
+    if (temperature < low_) {
+      qDebug() << "Low setpoint (" << low_ << ") reached (" << temperature
+               << ").";
+      start();
+    } else if (temperature > high_)
+      qDebug() << "High setpoint (" << high_ << ") reached (" << temperature
+               << ").";
+      stop();
+  }
+};
+
+Heater::Heater(const config::gpio &config, int low, int high)
+    : d(std::make_unique<Impl>(config, low, high, 10s)) {}
+Heater::~Heater() = default;
+
+void Heater::set(const bool state) {
+  if (state)
+    d->start();
+  else
+    d->stop();
+}
+
+void Heater::temperatureChanged(int temperature) {
+  d->temperatureChanged(temperature);
+}
 }
 }
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
