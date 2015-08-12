@@ -18,11 +18,16 @@ static void output(QtMsgType type, const QMessageLogContext &,
 
 int main(int argc, char *argv[]) {
   QGst::init(&argc, &argv);
+  QCoreApplication application(argc, argv);
   QCoreApplication::setOrganizationName("InTex");
   QCoreApplication::setOrganizationDomain("tu-dresden.de/et/intex");
   QCoreApplication::setApplicationName("InTex Experiment Control");
+#ifdef BUILD_ON_RASPBERRY
+  QCoreApplication::setApplicationVersion("(Raspberry)");
+#else
+  QCoreApplication::setApplicationVersion("(non-Raspberry)");
+#endif
 
-  QCoreApplication application(argc, argv);
   qInstallMessageHandler(output);
 
   QTimer::singleShot(0, [] {
