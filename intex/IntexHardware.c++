@@ -19,10 +19,8 @@ static constexpr int retries = 3;
 
 class gpio {
 public:
-  enum class direction { in, out };
   enum class attribute { active_low, direction, edge, value };
-  gpio(int pin, std::string name, const direction direction = direction::in,
-       const bool active_low = false);
+  gpio(const config::gpio &config);
   gpio(const gpio &) = delete;
   gpio(gpio &&) = default;
   gpio &operator=(const gpio &) = delete;
@@ -35,19 +33,15 @@ public:
   bool isOn();
 
 private:
+  config::gpio config_;
   void set(const bool on);
-  std::string name_;
-  int pin_;
-  direction direction_;
-  bool active_low_;
 };
 
-static std::ostream &operator<<(std::ostream &os,
-                                const gpio::direction &direction) {
+                                const enum config::gpio::direction &direction) {
   switch (direction) {
-  case gpio::direction::in:
+  case config::gpio::direction::in:
     return os << "in";
-  case gpio::direction::out:
+  case config::gpio::direction::out:
     return os << "out";
   }
 }
@@ -102,28 +96,27 @@ static int get_attribute(const gpio::attribute attr, const int pin) {
   return value;
 }
 
-gpio::gpio(int pin, std::string name, const direction direction,
-           const bool active_low)
-    : name_(std::move(name)), pin_(pin), direction_(direction),
-      active_low_(active_low) {}
+gpio::gpio(const config::gpio &config) : config_(config) {}
 
 void gpio::init() {
-  std::cout << "Configuring GPIO " << name_ << " (" << pin_ << ") as "
-            << direction_ << (active_low_ ? "(active low)" : "") << "."
-            << std::endl;
+  std::cout << "Configuring GPIO " << config_.name << " (" << config_.pinno
+            << ") as " << config_.direction
+            << (config_.active_low ? "(active low)" : "") << "." << std::endl;
 
-  export_pin(pin_);
-  set_attribute(attribute::active_low, pin_, active_low_);
-  set_attribute(attribute::direction, pin_, direction_);
+  export_pin(config_.pinno);
+  set_attribute(attribute::active_low, config_.pinno, config_.active_low);
+  set_attribute(attribute::direction, config_.pinno, config_.direction);
 }
 
 void gpio::on() { set(true); }
 void gpio::off() { set(false); }
-bool gpio::isOn() { return get_attribute<int>(attribute::value, pin_); }
+bool gpio::isOn() {
+  return get_attribute<int>(attribute::value, config_.pinno);
+}
 
 void gpio::set(const bool on) {
   for (int retry = 0; retry < retries; ++retry) {
-    set_attribute(attribute::value, pin_, static_cast<int>(on));
+    set_attribute(attribute::value, config_.pinno, static_cast<int>(on));
     if (isOn() == on)
       return;
   }
@@ -234,15 +227,14 @@ private:
 struct Valve::Impl {
   PWM pwm;
   GPIO pin_;
-  Impl(const int pinno, std::string name)
-      : pwm(2s, 0.1f), pin_(::intex::hw::gpio(pinno, std::move(name))) {
+  Impl(const config::gpio &config)
+      : pwm(2s, 0.1f), pin_(::intex::hw::gpio(config)) {
     QObject::connect(&pwm, &PWM::on, &pin_, &GPIO::on);
     QObject::connect(&pwm, &PWM::off, &pin_, &GPIO::off);
   }
 };
 
-Valve::Valve(const config::gpio &config)
-    : d(std::make_unique<Impl>(config.pinno, config.name)) {
+Valve::Valve(const config::gpio &config) : d(std::make_unique<Impl>(config)) {
   connect(&d->pin_, &GPIO::log, this, &Valve::log);
   d->pin_.init();
 }

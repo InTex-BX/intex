@@ -31,12 +31,16 @@ namespace config {
  */
 
 struct gpio {
+  enum class direction { in, out };
+
   int pinno;
   const char *const name;
+  enum direction direction;
+  bool active_low;
 };
 
-static constexpr gpio valve0{5, "VALVE1"};
-static constexpr gpio valve1{6, "VALVE2"};
+static constexpr gpio valve0{5, "VALVE1", gpio::direction::out, true};
+static constexpr gpio valve1{6, "VALVE2", gpio::direction::out, true};
 }
 
 class Valve : public QObject {
