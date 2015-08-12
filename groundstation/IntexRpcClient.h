@@ -25,6 +25,9 @@ public Q_SLOTS:
   void setGPIO(const InTexHW hw, const bool open,
                std::function<void(bool)> succes);
   void setBitrate(const InTexFeed feed, const unsigned bitrate);
+  void start(const InTexService service);
+  void stop(const InTexService service);
+  void next(const InTexService service);
 
 private Q_SLOTS:
   void onConnect();

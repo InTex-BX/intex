@@ -74,5 +74,25 @@ void IntexRpcClient::setBitrate(const InTexFeed feed, const unsigned bitrate) {
   });
 }
 
+void IntexRpcClient::stop(const InTexService service) {}
+void IntexRpcClient::start(const InTexService service) {}
+void IntexRpcClient::next(const InTexService service) {
+  auto request = intex.nextRequest();
+  request.setService(service);
+  request.send()
+      .then(
+          [service](auto &&) {
+            qDebug() << "New file for service" << static_cast<int>(service)
+                     << "created.";
+          },
+          [service](auto &&exception) {
+            qDebug() << "New file for service" << static_cast<int>(service)
+                     << "failed:" << exception.getDescription().cStr();
+          })
+      .detach([](auto &&exception) {
+        qDebug() << "Detach failed:" << exception.getDescription().cStr();
+      });
+}
+
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
 #include "moc_IntexRpcClient.cpp"
