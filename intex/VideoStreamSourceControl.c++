@@ -47,7 +47,7 @@ static QString make_downlink(const QString &host, const QString &port,
   QString buf;
   QTextStream downlink(&buf);
   downlink << " ! queue ! videoscale"
-           << " ! video/x-raw,width=720,height=480,framerate=30/1"
+           << " ! video/x-raw,width=360,height=240,framerate=30/1"
            << " ! rtpvrawpay ! queue"
            << " ! udpsink host=" << host << " port=" << port
            << " sync=false name=" << sinkName;
