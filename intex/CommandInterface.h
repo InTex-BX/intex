@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include <string>
 
 #include <QFile>
 #include <QObject>
@@ -20,6 +21,7 @@
 
 class InTexServer final : public Command::Server {
   static constexpr int max_logfiles = 10000;
+  std::string client;
 
   QUdpSocket syslog_socket;
   std::vector<std::unique_ptr<QFile>> files;
@@ -29,6 +31,7 @@ class InTexServer final : public Command::Server {
   intex::hw::Valve valve0;
   intex::hw::Valve valve1;
 
+  void setupLogStream(const uint16_t port);
   void setupLogFiles();
 
 public:

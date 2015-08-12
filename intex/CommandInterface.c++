@@ -17,13 +17,12 @@
 InTexServer *server_instance = nullptr;
 
 InTexServer::InTexServer()
-    : source0(intex::Subsystem::Video0, "grace.local", "5000"),
+    : client("127.0.0.1"),
+      source0(intex::Subsystem::Video0, "grace.local", "5000"),
       valve0(intex::hw::config::valve0), valve1(intex::hw::config::valve1) {
   server_instance = this;
 
-  syslog_socket.connectToHost("localhost", 4003, QIODevice::WriteOnly,
-                              QAbstractSocket::IPv4Protocol);
-  syslog_socket.waitForConnected();
+  setupLogStream(4003);
   logs.push_back(std::make_unique<QTextStream>(&syslog_socket));
   setupLogFiles();
 }
@@ -99,6 +98,11 @@ kj::Promise<void> InTexServer::next(NextContext context) {
   }
 
   throw std::runtime_error("Port not implemented.");
+}
+
+void InTexServer::setupLogStream(const uint16_t port) {
+  syslog_socket.connectToHost(client.c_str(), port, QIODevice::WriteOnly,
+                              QAbstractSocket::IPv4Protocol);
 }
 
 void InTexServer::setupLogFiles() {
