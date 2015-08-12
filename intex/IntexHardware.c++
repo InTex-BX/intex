@@ -80,29 +80,29 @@ static void export_pin(int pin) {
   export_ << pin << std::endl;
 }
 
-static std::fstream sysfs_file(const gpio::attribute attr, const int pin,
-                               const std::ios_base::openmode mode) {
-  std::fstream file;
+static void sysfs_file(std::fstream &file, const gpio::attribute attr,
+                       const int pin, const std::ios_base::openmode mode) {
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
   std::ostringstream fname;
   fname << "/sys/class/gpio/gpio" << pin << "/" << attr;
 
   file.open(fname.str().c_str(), mode);
-  return file;
 }
 
 template <typename T>
 static void set_attribute(const gpio::attribute attr, const int pin,
                           const T value) {
-  auto file = sysfs_file(attr, pin, std::ios_base::out);
+  std::fstream file;
+  sysfs_file(file, attr, pin, std::ios_base::out);
   file << value << std::endl;
 }
 
 template <typename T>
 static int get_attribute(const gpio::attribute attr, const int pin) {
   T value;
-  auto file = sysfs_file(attr, pin, std::ios_base::in);
+  std::fstream file;
+  sysfs_file(file, attr, pin, std::ios_base::in);
   file >> value;
   return value;
 }
