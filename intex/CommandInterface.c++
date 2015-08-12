@@ -70,7 +70,7 @@ kj::Promise<void> InTexServer::setPort(SetPortContext context) {
 }
 
 kj::Promise<void> InTexServer::setGPIO(SetGPIOContext context) {
-  using namespace std::chrono;
+  using namespace std::literals::chrono_literals;
   std::cout << __PRETTY_FUNCTION__ << std::endl;
   std::this_thread::sleep_for(0.1s);
   auto params = context.getParams();
