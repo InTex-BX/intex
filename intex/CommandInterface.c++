@@ -87,35 +87,31 @@ kj::Promise<void> InTexServer::setGPIO(SetGPIOContext context) {
 void InTexServer::setupLogFiles() {
   auto date = QDateTime::currentDateTime().toString(Qt::ISODate);
 
-  for (unsigned int log = 0; log < nr_log_locations; ++log) {
-    try {
-      auto file =
-          std::make_unique<QFile>(storageLocation(log, intex::Subsystem::Log));
-      if (file == nullptr) {
-        throw std::runtime_error("Could not create QFile object.");
-      }
-
-      if (!file->open(QIODevice::WriteOnly | QIODevice::Append |
-                      QIODevice::Text)) {
-        throw std::runtime_error("Could not open log file " +
-                                 file->fileName().toStdString() +
-                                 " for writing.");
-      }
-
-      auto stream = std::make_unique<QTextStream>(file.get());
-      if (stream == nullptr) {
-        throw std::runtime_error(
-            "Could not create QTextStream object for log file " +
-            file->fileName().toStdString() + ".");
-      }
-
-      files.push_back(std::move(file));
-      logs.push_back(std::move(stream));
-
-      *logs.back() << "Log created at " << date << endl;
-    } catch (const std::runtime_error &e) {
-      qCritical() << QString::fromStdString(e.what());
-      continue;
+  try {
+    auto file = std::make_unique<QFile>(storageLocation(intex::Subsystem::Log));
+    if (file == nullptr) {
+      throw std::runtime_error("Could not create QFile object.");
     }
+
+    if (!file->open(QIODevice::WriteOnly | QIODevice::Append |
+                    QIODevice::Text)) {
+      throw std::runtime_error("Could not open log file " +
+                               file->fileName().toStdString() +
+                               " for writing.");
+    }
+
+    auto stream = std::make_unique<QTextStream>(file.get());
+    if (stream == nullptr) {
+      throw std::runtime_error(
+          "Could not create QTextStream object for log file " +
+          file->fileName().toStdString() + ".");
+    }
+
+    files.push_back(std::move(file));
+    logs.push_back(std::move(stream));
+
+    *logs.back() << "Log created at " << date << endl;
+  } catch (const std::runtime_error &e) {
+    qCritical() << QString::fromStdString(e.what());
   }
 }

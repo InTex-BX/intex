@@ -79,11 +79,10 @@ static void cdCreateSubdir(QDir &directory, QString subdir) {
   }
 }
 
-static QFileInfo initializeDataDirectory(const unsigned int replica,
-                                         const enum Subsystem subsys) {
+static QFileInfo initializeDataDirectory(const enum Subsystem subsys) {
 #ifdef BUILD_ON_RASPBERRY
   return QFileInfo(
-      QString("/media/usb%1/%2").arg(replica).arg(subdirectory(subsys)));
+      QString("/media/usb-raid/%1").arg(subdirectory(subsys)));
 #else
   QDir basePath{
       QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)};
@@ -96,17 +95,15 @@ static QFileInfo initializeDataDirectory(const unsigned int replica,
 
   cdCreateSubdir(basePath, "intex");
   cdCreateSubdir(basePath, "data");
-  cdCreateSubdir(basePath, QString("usb%1").arg(replica));
   cdCreateSubdir(basePath, subdirectory(subsys));
   return basePath.absolutePath();
 #endif
 }
 
-QString storageLocation(unsigned int replica, const enum Subsystem subsys,
-                        unsigned int *last) {
+QString storageLocation(const enum Subsystem subsys, unsigned int *last) {
   const unsigned max_files = 100000;
   const unsigned reboot = 0;
-  QFileInfo basepath(initializeDataDirectory(replica, subsys));
+  QFileInfo basepath(initializeDataDirectory(subsys));
 
   if (!basepath.exists()) {
     throw std::runtime_error("Directory " +

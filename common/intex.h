@@ -8,8 +8,8 @@
 
 namespace intex {
 enum class Subsystem { Video0, Video1, Log, Temperature, Pressure };
-QString storageLocation(unsigned int replica, const enum Subsystem subsys,
-                        unsigned int *last = nullptr);
+QString storageLocation(const enum Subsystem subsys, unsigned int *last =
+    nullptr);
 QString deviceName(const enum Subsystem subsys);
 }
 

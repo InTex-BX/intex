@@ -208,14 +208,13 @@ class StreamFileSink {
   }
 
 public:
-  StreamFileSink(unsigned replica, const enum intex::Subsystem subsystem,
+  StreamFileSink(const enum intex::Subsystem subsystem,
                  QGst::PipelinePtr pipeline)
       : queue(check_nonnull(QGst::ElementFactory::make("queue"))),
         selector(check_nonnull(QGst::ElementFactory::make("output-selector"))),
         fakesink(check_nonnull(QGst::ElementFactory::make("fakesink"))),
-        storageLocation([replica, subsystem] {
-          return intex::storageLocation(replica, subsystem);
-        }) {
+        storageLocation(
+            [subsystem] { return intex::storageLocation(subsystem); }) {
     /* select active pad */
     selector->setProperty("pad-negotiation-mode",
                           static_cast<int>(output_selector_mode::active));
@@ -274,13 +273,12 @@ static GstPadProbeReturn iFrameProbe(GstPad *, GstPadProbeInfo *info,
 /* Manages a single camera with its two replicated streams */
 struct VideoStreamSourceControl::Impl {
   QGst::PipelinePtr pipeline;
-  StreamFileSink replica0;
-  StreamFileSink replica1;
+  StreamFileSink filesink;
 
   Impl(const enum intex::Subsystem subsystem, const QString &host,
        const QString &port, unsigned bitrate, const bool debug)
       : pipeline(make_pipeline(subsystem, host, port, debug)),
-        replica0(0, subsystem, pipeline), replica1(1, subsystem, pipeline) {
+        filesink(subsystem, pipeline) {
     if (subsystem != intex::Subsystem::Video0 &&
         subsystem != intex::Subsystem::Video1) {
       throw std::runtime_error(
@@ -289,21 +287,6 @@ struct VideoStreamSourceControl::Impl {
     pipeline->setState(QGst::StatePlaying);
   }
   ~Impl() { pipeline->setState(QGst::StateNull); }
-
-  void next() {
-    replica0.next();
-    replica1.next();
-  }
-
-  void stop() {
-    replica0.stop();
-    replica1.stop();
-  }
-
-  void start() {
-    replica0.start();
-    replica1.start();
-  }
 };
 
 VideoStreamSourceControl::VideoStreamSourceControl(
@@ -337,6 +320,6 @@ void VideoStreamSourceControl::setPort(const uint16_t port) {
   getElementByName(sinkName)->setProperty("port", static_cast<gint>(port));
 }
 
-void VideoStreamSourceControl::start() { d->start(); }
-void VideoStreamSourceControl::stop() { d->stop(); }
-void VideoStreamSourceControl::next() { d->next(); }
+void VideoStreamSourceControl::start() { d->filesink.start(); }
+void VideoStreamSourceControl::stop() { d->filesink.stop(); }
+void VideoStreamSourceControl::next() { d->filesink.next(); }
