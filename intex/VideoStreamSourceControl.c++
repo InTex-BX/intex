@@ -218,7 +218,7 @@ class StreamFileSink {
   std::array<QGst::PadPtr, 3> pads;
   std::array<MultiFileSink, 2> sinks;
   size_t current = 0;
-  std::atomic_bool switching{false};
+  std::atomic_flag switching{false};
 
   friend GstPadProbeReturn iFrameProbe(GstPad *pad, GstPadProbeInfo *info,
                                        gpointer user_data);
@@ -237,7 +237,7 @@ class StreamFileSink {
     currentSinkPad->peer()->sendEvent(
         QGst::CapsEvent::create(nextSinkPad->currentCaps()));
 #endif
-    switching = false;
+    switching.clear(std::memory_order_release);
   }
 
 public:
@@ -280,11 +280,10 @@ public:
 
   /* TODO: add future */
   void next() {
-    if (switching) {
+    if (switching.test_and_set(std::memory_order_acquire)) {
       return;
     }
     sinks.at(nextIdx()).start(storageLocation());
-    switching = true;
     gst_pad_add_probe(selector->getStaticPad("sink"), GST_PAD_PROBE_TYPE_BUFFER,
                       iFrameProbe, this, nullptr);
   }
