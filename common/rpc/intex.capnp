@@ -45,4 +45,7 @@ interface Command {
   setPort @0 (service: InTexService, port: UInt16);
   setGPIO @1 (port: InTexHW, on: Bool);
   setBitrate @2 (feed: InTexFeed, bitrate: UInt32);
+  start @3 (service: InTexService);
+  stop @4 (service: InTexService);
+  next @5 (service: InTexService);
 }

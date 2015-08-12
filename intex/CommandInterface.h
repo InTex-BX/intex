@@ -37,6 +37,9 @@ public:
   void syslog(QtMsgType type, const QString &msg);
   kj::Promise<void> setPort(SetPortContext context) override;
   kj::Promise<void> setGPIO(SetGPIOContext context) override;
+  kj::Promise<void> start(StartContext context) override;
+  kj::Promise<void> stop(StopContext context) override;
+  kj::Promise<void> next(NextContext context) override;
 };
 
 extern InTexServer *server_instance;

@@ -83,6 +83,23 @@ kj::Promise<void> InTexServer::setGPIO(SetGPIOContext context) {
   throw std::runtime_error("GPIO not implemented.");
 }
 
+kj::Promise<void> InTexServer::start(StartContext context) {
+  return kj::READY_NOW;
+}
+
+kj::Promise<void> InTexServer::stop(StopContext context) {
+  return kj::READY_NOW;
+}
+
+kj::Promise<void> InTexServer::next(NextContext context) {
+  switch (context.getParams().getService()) {
+  case InTexService::VIDEO_FEED0:
+    source0.next();
+    return kj::READY_NOW;
+  }
+
+  throw std::runtime_error("Port not implemented.");
+}
 
 void InTexServer::setupLogFiles() {
   auto date = QDateTime::currentDateTime().toString(Qt::ISODate);
