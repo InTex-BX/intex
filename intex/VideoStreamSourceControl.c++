@@ -4,6 +4,7 @@
 #include <atomic>
 
 #include <QDebug>
+#include <QDir>
 #include <QFile>
 #include <QString>
 #include <QTextStream>
@@ -67,15 +68,29 @@ decltype(auto) check_nonnull_impl(T &&t, int lineno, const char *func) {
   return std::forward<T>(t);
 }
 
+static QString findDevice(const int idx) {
+  auto devices =
+      QDir("/sys/class/video4linux/")
+          .entryList(QDir::AllEntries | QDir::NoDotAndDotDot, QDir::Name);
+
+  for (const auto &device : devices)
+    qDebug() << "Found device" << device;
+
+  if (idx < devices.size())
+    return QString("/dev/%1").arg(devices.at(idx));
+
+  throw std::runtime_error("Video device " + std::to_string(idx) +
+                           " not found.");
+}
+
 static QString toVideoDevice(const enum intex::Subsystem subsys) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wswitch-enum"
-  /* TODO: we might actually have to do a dynamic lookup */
   switch (subsys) {
   case intex::Subsystem::Video0:
-    return "/dev/video0";
+    return findDevice(0);
   case intex::Subsystem::Video1:
-    return "/dev/video1";
+    return findDevice(1);
   default:
     throw std::runtime_error("Subsystem not supported.");
   }
