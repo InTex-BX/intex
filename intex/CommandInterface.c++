@@ -57,11 +57,14 @@ kj::Promise<void> InTexServer::setPort(SetPortContext context) {
             << static_cast<int>(context.getParams().getService()) << " "
             << context.getParams().getPort() << std::endl;
   auto params = context.getParams();
+  const auto port = params.getPort();
   switch (params.getService()) {
   case InTexService::VIDEO_FEED0:
-    source0.setPort(params.getPort());
+    source0.setPort(port);
     return kj::READY_NOW;
     break;
+  case InTexService::LOG:
+    setupLogStream(port);
   }
   throw std::runtime_error("Port not implemented.");
 }
