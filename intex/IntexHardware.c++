@@ -37,13 +37,23 @@ private:
   void set(const bool on);
 };
 
-                                const enum config::gpio::direction &direction) {
+static const char *to_string(const enum config::gpio::direction &direction) {
   switch (direction) {
   case config::gpio::direction::in:
-    return os << "in";
+    return "in";
   case config::gpio::direction::out:
-    return os << "out";
+    return "out";
   }
+}
+
+static std::ostream &operator<<(std::ostream &os,
+                                const enum config::gpio::direction &direction) {
+  return os << to_string(direction);
+}
+
+static QDebug &operator<<(QDebug &os,
+                          const enum config::gpio::direction &direction) {
+  return os << to_string(direction);
 }
 
 static std::ostream &operator<<(std::ostream &os,
