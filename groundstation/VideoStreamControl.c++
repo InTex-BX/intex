@@ -119,24 +119,50 @@ public:
   }
 };
 
-static const char test_pipeline[] =
-    "videotestsrc ! videoconvert ! tee name=raw "
-    "raw. ! queue name=prev ! qt5glvideosink name=lwidget force-aspect-ratio=true "
-    "raw. ! queue ! qt5glvideosink name=lwindow force-aspect-ratio=true ";
+static const char caps[] =
+    "application/x-rtp, media=(string)video, clock-rate=(int)90000, "
+    "encoding-name=(string)RAW, sampling=(string)YCbCr-4:2:0, "
+    "depth=(string)8, width=(string)360, height=(string)240, "
+    "colorimetry=(string)BT601-5, payload=(int)96, ssrc=(uint)4055103255, "
+    "timestamp-offset=(uint)2574552406, seqnum-offset=(uint)23268";
 
-static const char test_pipeline_[] =
-    "videotestsrc ! videoflip method=clockwise ! videoconvert ! tee name=raw "
-    "raw. ! queue name=prev ! qt5glvideosink name=rwidget force-aspect-ratio=true "
-    "raw. ! queue ! qt5glvideosink name=rwindow force-aspect-ratio=true ";
+static const char h264caps[] =
+    "application/x-rtp, media=(string)video, clock-rate=(int)90000, "
+    "encoding-name=(string)H264, packetization-mode=(string)1, "
+    "payload=(int)96";
+
+static QGst::PipelinePtr makePipeline(const bool debug, const QString &port,
+                                      const QString &widgetName,
+                                      const QString &windowName) {
+  QString pipeline;
+  QTextStream s(&pipeline);
+
+  s << "udpsrc port=" << port << " caps=";
+
+  if (debug) {
+    s << "\"" << caps << "\" ! queue ! rtpvrawdepay";
+  } else {
+    s << "\"" << h264caps << "\" ! queue ! rtph264depay";
+    s << " ! h264parse ! avdec_h264";
+  }
+
+  s << " ! videoconvert ! tee name=raw";
+  s << " raw. ! queue name=prev"
+    << " ! qt5glvideosink name=" << widgetName << " force-aspect-ratio=true "
+    << " raw. ! queue"
+    << " ! qt5glvideosink name=" << windowName << " force-aspect-ratio=true ";
+
+  qDebug() << pipeline;
+
+  return QGst::Parse::launch(pipeline).dynamicCast<QGst::Pipeline>();
+}
 
 VideoStreamControl::VideoStreamControl(VideoWidget &leftWidget,
                                        VideoWidget &rightWidget,
                                        QGst::Ui::VideoWidget &leftWindow,
                                        QGst::Ui::VideoWidget &rightWindow)
-    : pipeline0(QGst::Parse::launch(QString(test_pipeline))
-                    .dynamicCast<QGst::Pipeline>()),
-      pipeline1(QGst::Parse::launch(QString(test_pipeline_))
-                    .dynamicCast<QGst::Pipeline>()),
+    : pipeline0(makePipeline(false, "5000", "lwidget", "lwindow")),
+      pipeline1(makePipeline(false, "5002", "rwidget", "rwindow")),
       widgetSwitcher(std::make_unique<SinkSwitcher>(pipeline0, pipeline1,
                                                     "lwidget", "rwidget")),
       windowSwitcher(std::make_unique<SinkSwitcher>(pipeline0, pipeline1,
