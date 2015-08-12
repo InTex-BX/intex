@@ -1,6 +1,6 @@
 #include <QDebug>
-#include <QObject>
 #include <QTimer>
+#include <QString>
 
 #include <chrono>
 #include <iostream>
@@ -135,6 +135,40 @@ void gpio::set(const bool on) {
   throw std::runtime_error("Could not set pin");
 }
 
+class debug_gpio {
+public:
+  debug_gpio(const config::gpio &config)
+      : name_(config.name), pin_(config.pinno), direction_(config.direction),
+        active_low_(config.active_low), state(false) {}
+  debug_gpio(const debug_gpio &) = delete;
+  debug_gpio(debug_gpio &&) = default;
+  debug_gpio &operator=(const debug_gpio &) = delete;
+  debug_gpio &operator=(debug_gpio &&) = default;
+
+  void init() {
+    qDebug() << "Initializing pin" << name_ << "(" << pin_ << ") as"
+             << direction_ << (active_low_ ? "(active_low)" : "");
+  }
+
+  void on() { set(true); }
+  void off() { set(false); }
+  bool isOn() {
+    qDebug() << "Reading pin" << name_ << "(" << pin_ << ") as" << state;
+    return state;
+  }
+
+private:
+  void set(const bool on) {
+    state = on;
+    qDebug() << "Setting pin" << name_ << "(" << pin_ << ")" << state;
+  }
+  QString name_;
+  int pin_;
+  enum config::gpio::direction direction_;
+  bool active_low_;
+  bool state;
+};
+
 #pragma clang diagnostic ignored "-Wweak-vtables"
 
 class PWM : public QObject {
@@ -239,7 +273,13 @@ struct Valve::Impl {
   PWM pwm;
   GPIO pin_;
   Impl(const config::gpio &config)
-      : pwm(2s, 0.1f), pin_(::intex::hw::gpio(config)) {
+      : pwm(2s, 0.1f),
+#ifdef BUILD_ON_RASPBERRY
+        pin_(::intex::hw::gpio(config))
+#else
+        pin_(::intex::hw::debug_gpio(config))
+#endif
+  {
     QObject::connect(&pwm, &PWM::on, &pin_, &GPIO::on);
     QObject::connect(&pwm, &PWM::off, &pin_, &GPIO::off);
   }
