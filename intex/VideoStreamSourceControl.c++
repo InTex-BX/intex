@@ -100,19 +100,37 @@ static QString toVideoDevice(const enum intex::Subsystem subsys) {
 static QGst::PipelinePtr make_pipeline(const enum intex::Subsystem subsys,
                                        const QString &host, const QString &port,
                                        const bool debug) {
+  const QString devName(deviceName(subsys));
   QString teename("h264");
   QString buf;
   QTextStream pipeline(&buf);
+  QString device;
+  QString error;
+
+  try {
+    device = toVideoDevice(subsys);
+  } catch (const std::runtime_error &e) {
+    error = e.what();
+  }
 
   if (!debug) {
-    pipeline << "uvch264src name=" << deviceName(subsys)
-             << " device=" << toVideoDevice(subsys)
-             << " initial-bitrate=5000000 peak-bitrate=5000000 "
-                "average-bitrate=3000000"
-             << " mode=mode-video rate-control=vbr auto-start=true"
-             << " iframe-period=1 cam0.vidsrc ! h264parse";
+    if (!device.isEmpty()) {
+      pipeline << "uvch264src name=" << devName << " device=" << device
+               << " initial-bitrate=5000000 peak-bitrate=5000000 "
+                  "average-bitrate=3000000"
+               << " mode=mode-video rate-control=vbr auto-start=true"
+               << " iframe-period=1 " << devName << ".vidsrc ! h264parse";
+    } else {
+      pipeline << "videotestsrc name=" << devName;
+      pipeline << " ! textoverlay font-desc=\"Sans 50\" shaded-background=true";
+      pipeline << " text=\"" << error << "\" ! videoconvert ";
+      pipeline
+          << " ! omxh264enc "
+          << " target_bitrate=400000 control-rate=variable inline-header=true"
+          << " periodicty-idr=10 interval-intraframes=10 ! h264parse";
+    }
   } else {
-    pipeline << "videotestsrc name=" << deviceName(subsys);
+    pipeline << "videotestsrc name=" << devName;
   }
 
   pipeline << " ! queue ! tee name=" << teename << " " << teename << ".";
