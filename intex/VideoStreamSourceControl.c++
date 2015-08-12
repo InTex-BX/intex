@@ -223,7 +223,7 @@ class StreamFileSink {
   friend GstPadProbeReturn iFrameProbe(GstPad *pad, GstPadProbeInfo *info,
                                        gpointer user_data);
 
-  QGst::PadPtr dummyPad() { return pads.at(3); }
+  QGst::PadPtr dummyPad() { return pads.at(2); }
   decltype(auto) nextIdx() { return (current + 1) % sinks.size(); }
 
   void doSwitch() {
