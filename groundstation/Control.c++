@@ -303,10 +303,17 @@ Control::Control(QWidget *parent)
   d_->splitSlider->setValue(50);
   d_->splitSlider->setTracking(false);
 
+  auto newFileButton = new QPushButton("New File");
+  connect(newFileButton, &QPushButton::clicked, [this] {
+    d_->client.next(InTexService::VIDEO_FEED0);
+    d_->client.next(InTexService::VIDEO_FEED1);
+  });
+
   controlLayout->addWidget(bitrateLabel);
   controlLayout->addWidget(d_->bitrateSlider);
   controlLayout->addWidget(splitLabel);
   controlLayout->addWidget(d_->splitSlider);
+  controlLayout->addWidget(newFileButton);
 
   centralLayout->addWidget(controlWidget);
   centralLayout->addWidget(d_->intexWidget);
