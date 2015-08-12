@@ -16,19 +16,6 @@ static void output(QtMsgType type, const QMessageLogContext &,
     std::cerr << msg.toStdString() << std::endl;
 }
 
-class RpcServer : public QObject, public intex::rpc::EzRpcServer {
-  Q_OBJECT
-
-public:
-  RpcServer(kj::StringPtr host, ::capnp::uint port)
-      : EzRpcServer(kj::heap<InTexServer>(), host, port) {}
-  ~RpcServer() noexcept {}
-  [[noreturn]] void run() {
-    auto &waitScope = getWaitScope();
-    kj::NEVER_DONE.wait(waitScope);
-  }
-};
-
 int main(int argc, char *argv[]) {
   QGst::init(&argc, &argv);
   QCoreApplication::setOrganizationName("InTex");
@@ -38,11 +25,12 @@ int main(int argc, char *argv[]) {
   QCoreApplication application(argc, argv);
   qInstallMessageHandler(output);
 
-  RpcServer server("*", 1234);
-
-  QTimer::singleShot(0, &server, &RpcServer::run);
+  QTimer::singleShot(0, [] {
+    intex::rpc::EzRpcServer server(kj::heap<InTexServer>(), "*", 1234);
+    auto &waitScope = server.getWaitScope();
+    kj::NEVER_DONE.wait(waitScope);
+  });
 
   application.exec();
 }
 
-#include "main.moc"
