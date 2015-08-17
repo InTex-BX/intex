@@ -7,7 +7,8 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-
+#include <cassert>
+#include <unistd.h>
 #include "IntexHardware.h"
 
 using namespace std::chrono;
@@ -245,10 +246,10 @@ public:
     }
   }
 
-// clang-format off
+  // clang-format off
 Q_SIGNALS:
   void log(QString);
-// clang-format on
+  // clang-format on
 
 private:
   struct gpio_concept {
@@ -338,7 +339,7 @@ public:
     } else if (temperature > high_)
       qDebug() << "High setpoint (" << high_ << ") reached (" << temperature
                << ").";
-      stop();
+    stop();
   }
 };
 
@@ -355,6 +356,35 @@ void Heater::set(const bool state) {
 
 void Heater::temperatureChanged(int temperature) {
   d->temperatureChanged(temperature);
+}
+
+class BurnWire::Impl {
+  GPIO pin;
+
+public:
+  Impl(const config::gpio &config)
+      :
+#ifdef BUILD_ON_RASPBERRY
+        pin(::intex::hw::gpio(config))
+#else
+        pin(::intex::hw::debug_gpio(config))
+#endif
+  {
+  }
+
+  void on() { pin.on(); }
+  void off() { pin.off(); }
+};
+
+BurnWire::BurnWire(const config::gpio &config)
+    : d(std::make_unique<Impl>(config)) {}
+BurnWire::~BurnWire() = default;
+
+void BurnWire::actuate() {
+  d->on();
+  /*XXX: please replace with an appropriate qt timer and remove #include <unistd.h>*/
+  sleep(3);
+  d->off();
 }
 }
 }

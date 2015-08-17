@@ -39,8 +39,12 @@ struct gpio {
   bool active_low;
 };
 
-static constexpr gpio valve0{5, "VALVE1", gpio::direction::out, true};
-static constexpr gpio valve1{6, "VALVE2", gpio::direction::out, true};
+static constexpr gpio valve0{5, "VALVE1", gpio::direction::out, false};
+static constexpr gpio valve1{6, "VALVE2", gpio::direction::out, false};
+static constexpr gpio ads1248_cs{18, "ADS1248_CS", gpio::direction::out, true};
+static constexpr gpio ads1248_reset{23, "ADS1248_CS", gpio::direction::out,
+                                    true};
+static constexpr gpio burnwire{14, "BURNWIRE", gpio::direction::out, false};
 }
 
 class Valve : public QObject {
@@ -74,6 +78,20 @@ public:
 
   void set(const bool on);
   void temperatureChanged(int temperature);
+};
+
+class BurnWire : public QObject {
+  Q_OBJECT
+
+  class Impl;
+  std::unique_ptr<Impl> d;
+
+public:
+  /* add timeout on temperatureChanged */
+  BurnWire(const config::gpio &config);
+  ~BurnWire();
+
+  void actuate();
 };
 }
 }
