@@ -18,3 +18,9 @@ target_link_libraries(experiment
 )
 set_target_properties(experiment PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
 qt5_use_modules(experiment Core Network)
+
+add_executable(GPIO_Test GPIO_Test.c++ IntexHardware.c++)
+set_target_properties(GPIO_Test PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
+qt5_use_modules(GPIO_Test Core Network)
+
+
