@@ -201,8 +201,10 @@ public:
 
   void setDuty(float duty) { duty_ = duty; }
   void start() {
-    Q_EMIT on();
-    timer.start();
+    if (!timer.isActive()) {
+      Q_EMIT on();
+      timer.start();
+    }
   }
   void stop() {
     timer.stop();
@@ -323,8 +325,10 @@ public:
   }
 
   void start() {
-    pwm.start();
-    timer.start(static_cast<int>(timeout_.count()));
+    if (!timer.isActive()) {
+      pwm.start();
+      timer.start(static_cast<int>(timeout_.count()));
+    }
   }
   void stop() {
     pwm.stop();
