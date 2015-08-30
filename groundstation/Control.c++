@@ -16,6 +16,8 @@
 #include <QLineEdit>
 #include <QIntValidator>
 
+#include <iostream>
+
 #include "Control.h"
 
 #include "qgst.h"
@@ -25,6 +27,15 @@
 #include "VideoStreamControl.h"
 #include "IntexWidget.h"
 #include "IntexRpcClient.h"
+
+static IntexWidget *log_instance = nullptr;
+static void output(QtMsgType type, const QMessageLogContext &,
+                   const QString &msg) {
+  if (log_instance != nullptr) {
+    log_instance->log(msg);
+  }
+  std::cerr << msg.toStdString() << std::endl;
+}
 
 struct Control::Impl {
   VideoWindow leftWindow;
@@ -59,11 +70,12 @@ struct Control::Impl {
         switchWidgets_(tr("Ctrl+X"), parent, SLOT(switchWidgets())),
         switchWindows_(tr("Ctrl+Shift+X"), parent, SLOT(switchWindows())),
         showNormal_(tr("Esc"), parent, SLOT(showNormal())), client("*", 1234) {
+    qInstallMessageHandler(output);
+    log_instance = intexWidget;
+
     leftWindow.setWindowTitle("InTex Live Feed 0");
     rightWindow.setWindowTitle("InTex Live Feed 1");
 
-    QObject::connect(&client, &IntexRpcClient::log, intexWidget,
-                     &IntexWidget::log);
     QObject::connect(&client, &IntexRpcClient::gpioChanged,
                      [this](const InTexHW hw, const bool state) {
                        switch (hw) {
@@ -123,7 +135,7 @@ struct Control::Impl {
                      });
   }
 
-  ~Impl() {}
+  ~Impl() { log_instance = nullptr; }
   void switchWidgets() { videoControl.switchWidgets(); }
   void switchWindows() { videoControl.switchWindows(); }
 };

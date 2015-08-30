@@ -35,7 +35,6 @@ private Q_SLOTS:
 
   // clang-format off
 Q_SIGNALS:
-  void log(QString msg);
   void gpioChanged(const InTexHW hw, const bool state);
   void portChanged(const InTexService service, uint16_t port);
   void connected();

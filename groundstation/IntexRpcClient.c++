@@ -35,10 +35,10 @@ void IntexRpcClient::setPort(const InTexService service, const uint16_t port) {
       .then(
           [this, service, port](auto &&) { Q_EMIT portChanged(service, port); },
           [this](auto &&exception) {
-            Q_EMIT log(exception.getDescription().cStr());
+            qCritical() << exception.getDescription().cStr();
           })
       .detach([this](auto &&exception) {
-        Q_EMIT log(exception.getDescription().cStr());
+        qCritical() << exception.getDescription().cStr();
       });
 }
 
@@ -51,17 +51,17 @@ void IntexRpcClient::setGPIO(const InTexHW hw, const bool state,
       .then(
           [this, hw, success, state](auto &&) {
             success(true);
-            Q_EMIT log("Success");
+            qDebug() << "Success";
             Q_EMIT gpioChanged(hw, state);
           },
           [this, hw, state, success](auto &&e) {
             success(false);
             Q_EMIT gpioChanged(hw, !state);
-            Q_EMIT log(e.getDescription().cStr());
+            qCritical() << e.getDescription().cStr();
           })
       .detach([this, success](auto &&e) {
         success(false);
-        Q_EMIT log(e.getDescription().cStr());
+        qCritical() << e.getDescription().cStr();
       });
 }
 
@@ -70,7 +70,7 @@ void IntexRpcClient::setBitrate(const InTexFeed feed, const unsigned bitrate) {
   request.setFeed(feed);
   request.setBitrate(bitrate);
   request.send().detach([this](auto &&exception) {
-    Q_EMIT log(exception.getDescription().cStr());
+    qCritical() << exception.getDescription().cStr();
   });
 }
 
