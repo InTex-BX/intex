@@ -229,28 +229,23 @@ public:
     try {
       model_->init();
     } catch (const std::exception &e) {
-      Q_EMIT log(QString::fromStdString(e.what()));
+      qCritical() << e.what();
     }
   }
   void on() {
     try {
       model_->on();
     } catch (const std::exception &e) {
-      Q_EMIT log(QString::fromStdString(e.what()));
+      qCritical() << e.what();
     }
   }
   void off() {
     try {
       model_->off();
     } catch (const std::exception &e) {
-      Q_EMIT log(QString::fromStdString(e.what()));
+      qCritical() << e.what();
     }
   }
-
-// clang-format off
-Q_SIGNALS:
-  void log(QString);
-// clang-format on
 
 private:
   struct gpio_concept {
@@ -288,7 +283,6 @@ struct Valve::Impl {
 };
 
 Valve::Valve(const config::gpio &config) : d(std::make_unique<Impl>(config)) {
-  connect(&d->pin_, &GPIO::log, this, &Valve::log);
   d->pin_.init();
 }
 Valve::~Valve() = default;

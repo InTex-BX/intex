@@ -54,11 +54,6 @@ public:
   ~Valve();
 
   void set(const bool state);
-
-  // clang-format off
-Q_SIGNALS:
-  void log(QString msg);
-  // clang-format on
 };
 
 class Heater : public QObject {
