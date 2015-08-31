@@ -140,3 +140,18 @@ QString storageLocation(const enum Subsystem subsys, unsigned int *last) {
   throw std::runtime_error("Maximum number of files reached.");
 }
 }
+
+QDebug operator<<(QDebug dbg, const InTexHW hw) {
+  switch (hw) {
+  case InTexHW::VALVE0:
+    return dbg << "Pressure tank valve";
+  case InTexHW::VALVE1:
+    return dbg << "Outlet valve";
+  case InTexHW::HEATER0:
+    return dbg << "Inner heater";
+  case InTexHW::HEATER1:
+    return dbg << "Outer heater";
+  case InTexHW::BURNWIRE:
+    return dbg << "Burnwire";
+  }
+}

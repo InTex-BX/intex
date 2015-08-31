@@ -5,6 +5,7 @@
 #include <QString>
 
 #include "asio.h"
+#include "rpc/intex.capnp.h"
 
 namespace intex {
 enum class Subsystem { Video0, Video1, Log, Temperature, Pressure };
@@ -15,3 +16,5 @@ QString deviceName(const enum Subsystem subsys);
 
 boost::asio::ip::address intex_ip();
 boost::asio::ip::address groundstation_ip();
+
+QDebug operator<<(QDebug dbg, const InTexHW hw);
