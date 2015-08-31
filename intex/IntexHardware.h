@@ -2,18 +2,13 @@
 
 #include <memory>
 
-#include <QObject>
-#include <QString>
-
 namespace intex {
 namespace hw {
 namespace config {
 struct gpio;
 }
 
-class Valve : public QObject {
-  Q_OBJECT
-
+class Valve {
   struct Impl;
   std::unique_ptr<Impl> d;
 
@@ -27,9 +22,7 @@ public:
   static Valve &outletValve();
 };
 
-class Heater : public QObject {
-  Q_OBJECT
-
+class Heater {
   class Impl;
   std::unique_ptr<Impl> d;
 
