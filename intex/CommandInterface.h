@@ -29,6 +29,9 @@ class InTexServer final : public Command::Server {
 
   intex::hw::Valve &pressureTank;
   intex::hw::Valve &outlet;
+  intex::hw::Heater &innerHeater;
+  intex::hw::Heater &outerHeater;
+  intex::hw::Burnwire &burnwire;
 
   void setupLogStream(const uint16_t port);
   void setupLogFiles();

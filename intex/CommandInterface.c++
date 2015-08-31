@@ -18,7 +18,10 @@ InTexServer *server_instance = nullptr;
 
 InTexServer::InTexServer()
     : client("127.0.0.1"), pressureTank(intex::hw::Valve::pressureTankValve()),
-      outlet(intex::hw::Valve::outletValve())
+      outlet(intex::hw::Valve::outletValve()),
+      innerHeater(intex::hw::Heater::innerHeater()),
+      outerHeater(intex::hw::Heater::outerHeater()),
+      burnwire(intex::hw::Burnwire::burnwire())
 {
   server_instance = this;
 
@@ -80,6 +83,15 @@ kj::Promise<void> InTexServer::setGPIO(SetGPIOContext context) {
     return kj::READY_NOW;
   case InTexHW::VALVE1:
     outlet.set(params.getOn());
+    return kj::READY_NOW;
+  case InTexHW::HEATER0:
+    innerHeater.set(params.getOn());
+    return kj::READY_NOW;
+  case InTexHW::HEATER1:
+    outerHeater.set(params.getOn());
+    return kj::READY_NOW;
+  case InTexHW::BURNWIRE:
+    burnwire.set(params.getOn());
     return kj::READY_NOW;
   }
   throw std::runtime_error("GPIO not implemented.");
