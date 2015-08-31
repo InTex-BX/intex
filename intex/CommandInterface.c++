@@ -21,7 +21,8 @@ InTexServer::InTexServer()
       outlet(intex::hw::Valve::outletValve()),
       innerHeater(intex::hw::Heater::innerHeater()),
       outerHeater(intex::hw::Heater::outerHeater()),
-      burnwire(intex::hw::Burnwire::burnwire())
+      burnwire(intex::hw::Burnwire::burnwire()),
+      source0(intex::Subsystem::Video0, "grace.local", "5000") {
 {
   server_instance = this;
 

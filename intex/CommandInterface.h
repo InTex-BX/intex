@@ -33,6 +33,8 @@ class InTexServer final : public Command::Server {
   intex::hw::Heater &outerHeater;
   intex::hw::Burnwire &burnwire;
 
+  VideoStreamSourceControl source0;
+
   void setupLogStream(const uint16_t port);
   void setupLogFiles();
 
