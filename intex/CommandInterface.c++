@@ -19,7 +19,8 @@ InTexServer *server_instance = nullptr;
 InTexServer::InTexServer()
     : client("127.0.0.1"),
       source0(intex::Subsystem::Video0, "grace.local", "5000"),
-      valve0(intex::hw::config::valve0), valve1(intex::hw::config::valve1) {
+      valve0(intex::hw::Valve::pressureTankValve()),
+      valve1(intex::hw::Valve::outletValve()) {
   server_instance = this;
 
   setupLogStream(4003);

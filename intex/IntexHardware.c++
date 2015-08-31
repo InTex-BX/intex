@@ -16,6 +16,43 @@ using namespace std::literals::chrono_literals;
 namespace intex {
 namespace hw {
 
+namespace config {
+
+/*
+ * GPIO14 BURNWIRE1_EN
+ * GPIO15 AUX1_24V_CTRL
+ * GPIO18 ADS1248_CS0
+ * GPIO23 ADS1248_CS1
+ * GPIO24 RTC_CS
+ * GPIO21 WD_INPUT
+ * GPIO04 PRESSURE_CS0
+ * GPIO17 PRESSURE_CS1
+ * GPIO27 PRESSURE_CS2
+ * GPIO10 SPI_MOSI
+ * GPIO09 SPI_MISO
+ * GPIO11 SPI_CLK
+ * GPIO05 VALVE1_OPEN
+ * GPIO06 VAVLE2_OPEN
+ * GPIO13 VALVE3_OPEN
+ * GPIO19 HEATER1_EN
+ * GPIO26 HEATER2_EN
+ */
+
+struct gpio {
+  enum class direction { in, out };
+
+  int pinno;
+  const char *const name;
+  enum direction direction;
+  bool active_low;
+};
+
+static constexpr gpio valve0{5, "VALVE1", gpio::direction::out, true};
+static constexpr gpio valve1{6, "VALVE2", gpio::direction::out, true};
+static constexpr gpio heater0{19, "Heater 0", gpio::direction::out, true};
+static constexpr gpio heater1{26, "Heater 1", gpio::direction::out, true};
+}
+
 static constexpr int retries = 3;
 
 class gpio {
@@ -294,6 +331,19 @@ void Valve::set(const bool state) {
     d->pwm.stop();
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+Valve &Valve::pressureTankValve() {
+  static std::unique_ptr<Valve> instance{new Valve(intex::hw::config::valve0)};
+  return *instance;
+}
+
+Valve &Valve::outletValve() {
+  static std::unique_ptr<Valve> instance{new Valve(intex::hw::config::valve1)};
+  return *instance;
+}
+#pragma clang diagnostic pop
+
 class Heater::Impl {
   PWM pwm;
   GPIO pin;
@@ -354,6 +404,21 @@ void Heater::set(const bool state) {
 void Heater::temperatureChanged(int temperature) {
   d->temperatureChanged(temperature);
 }
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+Heater &Heater::innerHeater() {
+  static std::unique_ptr<Heater> instance{
+      new Heater(intex::hw::config::heater0, 5, 20)};
+  return *instance;
+}
+
+Heater &Heater::outerHeater() {
+  static std::unique_ptr<Heater> instance{
+      new Heater(intex::hw::config::heater1, 5, 20)};
+  return *instance;
+}
+#pragma clang diagnostic pop
 }
 }
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
