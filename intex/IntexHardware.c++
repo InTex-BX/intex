@@ -51,6 +51,7 @@ static constexpr gpio valve0{5, "VALVE1", gpio::direction::out, true};
 static constexpr gpio valve1{6, "VALVE2", gpio::direction::out, true};
 static constexpr gpio heater0{19, "Heater 0", gpio::direction::out, true};
 static constexpr gpio heater1{26, "Heater 1", gpio::direction::out, true};
+static constexpr gpio burnwire{14, "Burnwire", gpio::direction::out, true};
 }
 
 static constexpr int retries = 3;
@@ -416,6 +417,46 @@ Heater &Heater::innerHeater() {
 Heater &Heater::outerHeater() {
   static std::unique_ptr<Heater> instance{
       new Heater(intex::hw::config::heater1, 5, 20)};
+  return *instance;
+}
+#pragma clang diagnostic pop
+
+struct Burnwire::Impl {
+  GPIO pin;
+
+  Impl(const config::gpio &config)
+      :
+#ifdef BUILD_ON_RASPBERRY
+        pin(::intex::hw::gpio(config))
+#else
+        pin(::intex::hw::debug_gpio(config))
+#endif
+  {
+  }
+
+  void set(const bool on) {
+    if (on) {
+      using namespace std::chrono;
+      using namespace std::literals::chrono_literals;
+      pin.on();
+      QTimer::singleShot(duration_cast<milliseconds>(10s).count(),
+                         [this] { pin.off(); });
+    } else {
+      pin.off();
+    }
+  }
+};
+
+Burnwire::Burnwire(const config::gpio &config)
+    : d(std::make_unique<Impl>(config)) {}
+Burnwire::~Burnwire() = default;
+void Burnwire::set(const bool on) { d->set(on); }
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+Burnwire &Burnwire::burnwire() {
+  static std::unique_ptr<Burnwire> instance{
+      new Burnwire(intex::hw::config::burnwire)};
   return *instance;
 }
 #pragma clang diagnostic pop

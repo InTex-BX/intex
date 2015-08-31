@@ -38,5 +38,19 @@ public:
   static Heater &innerHeater();
   static Heater &outerHeater();
 };
+
+class Burnwire {
+  struct Impl;
+  std::unique_ptr<Impl> d;
+
+  Burnwire(const config::gpio &config);
+
+public:
+  ~Burnwire();
+
+  void set(const bool on);
+
+  static Burnwire &burnwire();
+};
 }
 }
