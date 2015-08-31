@@ -27,6 +27,7 @@
 #include "VideoStreamControl.h"
 #include "IntexWidget.h"
 #include "IntexRpcClient.h"
+#include "intex.h"
 
 static IntexWidget *log_instance = nullptr;
 static void output(QtMsgType type, const QMessageLogContext &,
@@ -35,6 +36,17 @@ static void output(QtMsgType type, const QMessageLogContext &,
     log_instance->log(msg);
   }
   std::cerr << msg.toStdString() << std::endl;
+}
+
+static void gpio_callback(QAction *menuItem, const InTexHW hw,
+                          IntexRpcClient &client, const bool on) {
+  menuItem->setEnabled(false);
+  client.setGPIO(hw, on, [on, menuItem, hw](const bool success) {
+    menuItem->setChecked(success ? on : !on);
+    qDebug() << "Turning" << hw << (on ? "on" : "off")
+             << (success ? "was successful" : "failed");
+    menuItem->setEnabled(true);
+  });
 }
 
 struct Control::Impl {
@@ -221,6 +233,32 @@ Control::Control(QWidget *parent)
                                         QKeySequence(tr("Ctrl+k")));
   viewAction->setCheckable(true);
   viewAction->setChecked(true);
+
+  auto heater0Action = new QAction(tr("Inner heater"), nullptr);
+  heater0Action->setCheckable(true);
+  connect(heater0Action, &QAction::triggered,
+          [ heater0Action, &client = d_->client ](const bool on) {
+            gpio_callback(heater0Action, InTexHW::HEATER0, client, on);
+          });
+
+  auto heater1Action = new QAction(tr("Outer heater"), nullptr);
+  heater1Action->setCheckable(true);
+  connect(heater1Action, &QAction::triggered,
+          [ heater1Action, &client = d_->client ](const bool on) {
+            gpio_callback(heater1Action, InTexHW::HEATER1, client, on);
+          });
+
+  auto burnwireAction = new QAction(tr("Burnwire"), nullptr);
+  burnwireAction->setCheckable(true);
+  connect(burnwireAction, &QAction::triggered,
+          [ burnwireAction, &client = d_->client ](const bool on) {
+            gpio_callback(burnwireAction, InTexHW::BURNWIRE, client, on);
+          });
+
+  auto periphMenu = menuBar()->addMenu(tr("Peripherals"));
+  periphMenu->addAction(heater0Action);
+  periphMenu->addAction(heater1Action);
+  periphMenu->addAction(burnwireAction);
 
   auto centralWidget = new QWidget;
   setCentralWidget(centralWidget);
