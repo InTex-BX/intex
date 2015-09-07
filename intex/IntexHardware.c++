@@ -75,8 +75,6 @@ public:
   gpio &operator=(const gpio &) = delete;
   gpio &operator=(gpio &&) = default;
 
-  void init();
-
   void on();
   void off();
   bool isOn();
@@ -151,9 +149,7 @@ static int get_attribute(const gpio::attribute attr, const int pin) {
   return value;
 }
 
-gpio::gpio(const config::gpio &config) : config_(config) {}
-
-void gpio::init() {
+gpio::gpio(const config::gpio &config) : config_(config) {
   std::cout << "Configuring GPIO " << config_.name << " (" << config_.pinno
             << ") as " << config_.direction
             << (config_.active_low ? "(active low)" : "") << "." << std::endl;
@@ -183,16 +179,14 @@ class debug_gpio {
 public:
   debug_gpio(const config::gpio &config)
       : name_(config.name), pin_(config.pinno), direction_(config.direction),
-        active_low_(config.active_low), state(false) {}
+        active_low_(config.active_low), state(false) {
+    qDebug() << "Initializing pin" << name_ << "(" << pin_ << ") as"
+             << direction_ << (active_low_ ? "(active_low)" : "");
+  }
   debug_gpio(const debug_gpio &) = delete;
   debug_gpio(debug_gpio &&) = default;
   debug_gpio &operator=(const debug_gpio &) = delete;
   debug_gpio &operator=(debug_gpio &&) = default;
-
-  void init() {
-    qDebug() << "Initializing pin" << name_ << "(" << pin_ << ") as"
-             << direction_ << (active_low_ ? "(active_low)" : "");
-  }
 
   void on() { set(true); }
   void off() { set(false); }
@@ -268,13 +262,9 @@ class GPIO : public QObject {
 public:
   template <typename T>
   GPIO(T &&backend)
-      : model_(std::make_unique<gpio_model<T>>(std::move(backend))) {}
-  void init() {
-    try {
-      model_->init();
-    } catch (const std::exception &e) {
-      qCritical() << e.what();
-    }
+     try : model_(std::make_unique<gpio_model<T>>(std::move(backend))) {
+  } catch (const std::exception &e) {
+    qCritical() << e.what();
   }
   void on() {
     try {
@@ -294,7 +284,6 @@ public:
 private:
   struct gpio_concept {
     virtual ~gpio_concept() = default;
-    virtual void init() = 0;
     virtual void on() = 0;
     virtual void off() = 0;
   };
@@ -302,7 +291,6 @@ private:
   template <typename T> struct gpio_model final : gpio_concept {
     T backend_;
     gpio_model(T &&backend) : backend_(std::move(backend)) {}
-    void init() override { backend_.init(); }
     void on() override { backend_.on(); }
     void off() override { backend_.off(); }
   };
@@ -326,9 +314,7 @@ struct Valve::Impl {
   }
 };
 
-Valve::Valve(const config::gpio &config) : d(std::make_unique<Impl>(config)) {
-  d->pin_.init();
-}
+Valve::Valve(const config::gpio &config) : d(std::make_unique<Impl>(config)) {}
 Valve::~Valve() = default;
 
 void Valve::set(const bool state) {
