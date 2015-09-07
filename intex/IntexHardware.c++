@@ -48,11 +48,20 @@ struct gpio {
   bool active_low;
 };
 
-static constexpr gpio valve0{5, "VALVE1", gpio::direction::out, true};
-static constexpr gpio valve1{6, "VALVE2", gpio::direction::out, true};
-static constexpr gpio heater0{19, "Heater 0", gpio::direction::out, true};
-static constexpr gpio heater1{26, "Heater 1", gpio::direction::out, true};
-static constexpr gpio burnwire{14, "Burnwire", gpio::direction::out, true};
+static const char *to_string(const enum config::gpio::direction &direction) {
+  switch (direction) {
+  case config::gpio::direction::in:
+    return "in";
+  case config::gpio::direction::out:
+    return "out";
+  }
+}
+
+static constexpr gpio valve0{5, "VALVE1", gpio::direction::out, false};
+static constexpr gpio valve1{6, "VALVE2", gpio::direction::out, false};
+static constexpr gpio heater0{19, "Heater 0", gpio::direction::out, false};
+static constexpr gpio heater1{26, "Heater 1", gpio::direction::out, false};
+static constexpr gpio burnwire{14, "Burnwire", gpio::direction::out, false};
 }
 
 static constexpr int retries = 3;
@@ -76,15 +85,6 @@ private:
   config::gpio config_;
   void set(const bool on);
 };
-
-static const char *to_string(const enum config::gpio::direction &direction) {
-  switch (direction) {
-  case config::gpio::direction::in:
-    return "in";
-  case config::gpio::direction::out:
-    return "out";
-  }
-}
 
 static std::ostream &operator<<(std::ostream &os,
                                 const enum config::gpio::direction &direction) {
@@ -136,9 +136,10 @@ static void sysfs_file(std::fstream &file, const gpio::attribute attr,
 template <typename T>
 static void set_attribute(const gpio::attribute attr, const int pin,
                           const T value) {
+  using std::to_string;
   std::fstream file;
   sysfs_file(file, attr, pin, std::ios_base::out);
-  file << value << std::endl;
+  file << to_string(value) << std::endl;
 }
 
 template <typename T>
