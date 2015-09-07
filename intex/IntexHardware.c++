@@ -1,6 +1,7 @@
 #include <QDebug>
 #include <QTimer>
 #include <QString>
+#include <QFileInfo>
 
 #include <chrono>
 #include <iostream>
@@ -110,6 +111,10 @@ static std::ostream &operator<<(std::ostream &os,
 }
 
 static void export_pin(int pin) {
+  QFileInfo gpiodir(QString("/sys/class/gpio/gpio%1").arg(pin));
+  if (gpiodir.exists())
+    return;
+
   std::ofstream export_;
 
   export_.exceptions(std::ofstream::failbit | std::ofstream::badbit);
