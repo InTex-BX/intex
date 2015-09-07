@@ -27,12 +27,6 @@ class InTexServer final : public Command::Server {
   std::vector<std::unique_ptr<QFile>> files;
   std::vector<std::unique_ptr<QTextStream>> logs;
 
-  intex::hw::Valve &pressureTank;
-  intex::hw::Valve &outlet;
-  intex::hw::Heater &innerHeater;
-  intex::hw::Heater &outerHeater;
-  intex::hw::Burnwire &burnwire;
-
   VideoStreamSourceControl source0;
 
   void setupLogStream(const uint16_t port);
