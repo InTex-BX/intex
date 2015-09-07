@@ -21,7 +21,7 @@ namespace config {
 
 /*
  * GPIO14 BURNWIRE1_EN
- * GPIO15 AUX1_24V_CTRL
+ * GPIO15 AUX1_24V_CTRL BURNWIRE-NEW
  * GPIO18 ADS1248_CS0
  * GPIO23 ADS1248_CS1
  * GPIO24 RTC_CS
@@ -61,7 +61,7 @@ static constexpr gpio valve0{5, "VALVE1", gpio::direction::out, false};
 static constexpr gpio valve1{6, "VALVE2", gpio::direction::out, false};
 static constexpr gpio heater0{19, "Heater 0", gpio::direction::out, false};
 static constexpr gpio heater1{26, "Heater 1", gpio::direction::out, false};
-static constexpr gpio burnwire{14, "Burnwire", gpio::direction::out, false};
+static constexpr gpio burnwire{15, "Burnwire", gpio::direction::out, false};
 }
 
 static constexpr int retries = 3;
