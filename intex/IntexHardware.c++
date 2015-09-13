@@ -282,27 +282,43 @@ private:
 struct Valve::Impl {
   PWM pwm;
   GPIO pin_;
+  bool enabled = false;
+  QTimer timer;
+
   Impl(const config::gpio &config)
-      : pwm(2s, 0.1f),
+      : pwm(10s, 0.1f),
 #ifdef BUILD_ON_RASPBERRY
         pin_(::intex::hw::gpio(config))
 #else
         pin_(::intex::hw::debug_gpio(config))
 #endif
   {
+    timer.setInterval(duration_cast<milliseconds>(30s).count());
+    timer.setSingleShot(true);
+    QObject::connect(&timer, &QTimer::timeout, [this] { pwm.start(); });
     QObject::connect(&pwm, &PWM::set, &pin_, &GPIO::set);
+  }
+
+  void set(const bool on) {
+    if (on == enabled) {
+      return;
+    }
+
+    if (on) {
+      timer.start();
+    } else {
+      timer.stop();
+      pwm.stop();
+    }
+
+    pin_.set(on);
+    enabled = on;
   }
 };
 
 Valve::Valve(const config::gpio &config) : d(std::make_unique<Impl>(config)) {}
 Valve::~Valve() = default;
-
-void Valve::set(const bool state) {
-  if (state)
-    d->pwm.start();
-  else
-    d->pwm.stop();
-}
+void Valve::set(const bool state) { d->set(state); }
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
