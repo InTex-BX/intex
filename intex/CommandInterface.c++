@@ -49,7 +49,6 @@ void InTexServer::syslog(QtMsgType type, const QString &msg) {
   for (const auto &log : logs) {
     *log << prefix << msg << endl;
   }
-  std::cerr << prefix.toStdString() << msg.toStdString() << std::endl;
 }
 
 kj::Promise<void> InTexServer::setPort(SetPortContext context) {
