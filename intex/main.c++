@@ -54,7 +54,9 @@ int main(int argc, char *argv[]) {
   qInstallMessageHandler(output);
 
   QTimer::singleShot(0, [] {
-    intex::rpc::EzRpcServer server(kj::heap<InTexServer>(), "*", 1234);
+    auto instance = kj::heap<InTexServer>();
+    server_instance = instance.get();
+    intex::rpc::EzRpcServer server(kj::mv(instance), "*", 1234);
     auto &waitScope = server.getWaitScope();
     kj::NEVER_DONE.wait(waitScope);
   });
