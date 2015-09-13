@@ -236,6 +236,7 @@ public:
   }
   void stop() {
     timer.stop();
+    timer.setInterval(0);
     Q_EMIT set(false);
   }
 
