@@ -334,60 +334,66 @@ Valve &Valve::outletValve() {
 #pragma clang diagnostic pop
 
 class Heater::Impl {
-  PWM pwm;
   GPIO pin;
   QTimer timer;
   int low_;
   int high_;
-  milliseconds timeout_;
+  bool enabled = true;
+
+  void setpin(const bool on) {
+    /* don't restart timer, if it's running */
+    if (!on && !timer.isActive()) {
+      timer.start();
+    } else if (on) {
+      timer.stop();
+    }
+    pin.set(on);
+  }
 
 public:
   template <class Rep, class Period>
   Impl(const config::gpio &config, int low, int high,
        duration<Rep, Period> timeout)
-      : pwm(2s, 1.0f),
+      :
 #ifdef BUILD_ON_RASPBERRY
         pin(::intex::hw::gpio(config)),
 #else
         pin(::intex::hw::debug_gpio(config)),
 #endif
-        low_(low), high_(high), timeout_(duration_cast<milliseconds>(timeout)) {
-    QObject::connect(&pwm, &PWM::set, &pin, &GPIO::set);
-    QObject::connect(&timer, &QTimer::timeout, [this]() { stop(); });
+        low_(low), high_(high) {
+    timer.setInterval(
+        static_cast<int>(duration_cast<milliseconds>(timeout).count()));
+    QObject::connect(&timer, &QTimer::timeout, [this]() {
+      qDebug() << "Temperature changed timeout reached. Resetting Heater.";
+      setpin(true);
+    });
   }
 
-  void start() {
-    if (!timer.isActive()) {
-      pwm.start();
-      timer.start(static_cast<int>(timeout_.count()));
-    }
+  void set(const bool on) {
+    enabled = on;
+    setpin(on);
   }
-  void stop() {
-    pwm.stop();
-    timer.stop();
-  }
+
   void temperatureChanged(int temperature) {
+    if (!enabled)
+      return;
+
     if (temperature < low_) {
       qDebug() << "Low setpoint (" << low_ << ") reached (" << temperature
                << ").";
-      start();
-    } else if (temperature > high_)
+      setpin(true);
+    } else if (temperature > high_) {
       qDebug() << "High setpoint (" << high_ << ") reached (" << temperature
                << ").";
-      stop();
+      setpin(false);
+    }
   }
 };
 
 Heater::Heater(const config::gpio &config, int low, int high)
     : d(std::make_unique<Impl>(config, low, high, 10s)) {}
 Heater::~Heater() = default;
-
-void Heater::set(const bool state) {
-  if (state)
-    d->start();
-  else
-    d->stop();
-}
+void Heater::set(const bool state) { d->set(state); }
 
 void Heater::temperatureChanged(int temperature) {
   d->temperatureChanged(temperature);
