@@ -75,13 +75,11 @@ public:
   gpio &operator=(const gpio &) = delete;
   gpio &operator=(gpio &&) = default;
 
-  void on();
-  void off();
+  void set(const bool on);
   bool isOn();
 
 private:
   config::gpio config_;
-  void set(const bool on);
 };
 
 static std::ostream &operator<<(std::ostream &os,
@@ -159,8 +157,6 @@ gpio::gpio(const config::gpio &config) : config_(config) {
   set_attribute(attribute::direction, config_.pinno, config_.direction);
 }
 
-void gpio::on() { set(true); }
-void gpio::off() { set(false); }
 bool gpio::isOn() {
   return get_attribute<int>(attribute::value, config_.pinno);
 }
@@ -188,18 +184,16 @@ public:
   debug_gpio &operator=(const debug_gpio &) = delete;
   debug_gpio &operator=(debug_gpio &&) = default;
 
-  void on() { set(true); }
-  void off() { set(false); }
+  void set(const bool on) {
+    state = on;
+    qDebug() << "Setting pin" << name_ << "(" << pin_ << ")" << state;
+  }
   bool isOn() {
     qDebug() << "Reading pin" << name_ << "(" << pin_ << ") as" << state;
     return state;
   }
 
 private:
-  void set(const bool on) {
-    state = on;
-    qDebug() << "Setting pin" << name_ << "(" << pin_ << ")" << state;
-  }
   QString name_;
   int pin_;
   enum config::gpio::direction direction_;
@@ -218,11 +212,7 @@ class PWM : public QObject {
   bool state_;
 
   void cycle() {
-    if (state_) {
-      Q_EMIT on();
-    } else {
-      Q_EMIT off();
-    }
+    Q_EMIT set(state_);
     const auto factor = state_ ? duty_ : 1.0 - duty_;
     const auto timeout = period_ * factor;
     state_ = !state_;
@@ -240,19 +230,18 @@ public:
   void setDuty(float duty) { duty_ = duty; }
   void start() {
     if (!timer.isActive()) {
-      Q_EMIT on();
+      Q_EMIT set(true);
       timer.start();
     }
   }
   void stop() {
     timer.stop();
-    Q_EMIT off();
+    Q_EMIT set(false);
   }
 
   // clang-format off
 Q_SIGNALS:
-  void on();
-  void off();
+  void set(const bool);
   // clang-format on
 };
 
@@ -266,16 +255,9 @@ public:
   } catch (const std::exception &e) {
     qCritical() << e.what();
   }
-  void on() {
+  void set(const bool on) {
     try {
-      model_->on();
-    } catch (const std::exception &e) {
-      qCritical() << e.what();
-    }
-  }
-  void off() {
-    try {
-      model_->off();
+      model_->set(on);
     } catch (const std::exception &e) {
       qCritical() << e.what();
     }
@@ -284,15 +266,13 @@ public:
 private:
   struct gpio_concept {
     virtual ~gpio_concept() = default;
-    virtual void on() = 0;
-    virtual void off() = 0;
+    virtual void set(const bool) = 0;
   };
 
   template <typename T> struct gpio_model final : gpio_concept {
     T backend_;
     gpio_model(T &&backend) : backend_(std::move(backend)) {}
-    void on() override { backend_.on(); }
-    void off() override { backend_.off(); }
+    void set(const bool on) override { backend_.set(on); }
   };
 
   std::unique_ptr<gpio_concept> model_;
@@ -309,8 +289,7 @@ struct Valve::Impl {
         pin_(::intex::hw::debug_gpio(config))
 #endif
   {
-    QObject::connect(&pwm, &PWM::on, &pin_, &GPIO::on);
-    QObject::connect(&pwm, &PWM::off, &pin_, &GPIO::off);
+    QObject::connect(&pwm, &PWM::set, &pin_, &GPIO::set);
   }
 };
 
@@ -349,15 +328,14 @@ public:
   template <class Rep, class Period>
   Impl(const config::gpio &config, int low, int high,
        duration<Rep, Period> timeout)
-      : pwm(2s, 0.1f),
+      : pwm(2s, 1.0f),
 #ifdef BUILD_ON_RASPBERRY
         pin(::intex::hw::gpio(config)),
 #else
         pin(::intex::hw::debug_gpio(config)),
 #endif
         low_(low), high_(high), timeout_(duration_cast<milliseconds>(timeout)) {
-    QObject::connect(&pwm, &PWM::on, &pin, &GPIO::on);
-    QObject::connect(&pwm, &PWM::off, &pin, &GPIO::off);
+    QObject::connect(&pwm, &PWM::set, &pin, &GPIO::set);
     QObject::connect(&timer, &QTimer::timeout, [this]() { stop(); });
   }
 
@@ -430,11 +408,11 @@ struct Burnwire::Impl {
     if (on) {
       using namespace std::chrono;
       using namespace std::literals::chrono_literals;
-      pin.on();
+      pin.set(true);
       QTimer::singleShot(duration_cast<milliseconds>(10s).count(),
-                         [this] { pin.off(); });
+                         [this] { pin.set(false); });
     } else {
-      pin.off();
+      pin.set(false);
     }
   }
 };
