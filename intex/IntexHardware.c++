@@ -397,13 +397,13 @@ void Heater::temperatureChanged(int temperature) {
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
 Heater &Heater::innerHeater() {
   static std::unique_ptr<Heater> instance{
-      new Heater(intex::hw::config::heater0, 5, 20)};
+      new Heater(intex::hw::config::heater0, 35, 40)};
   return *instance;
 }
 
 Heater &Heater::outerHeater() {
   static std::unique_ptr<Heater> instance{
-      new Heater(intex::hw::config::heater1, 5, 20)};
+      new Heater(intex::hw::config::heater1, 35, 40)};
   return *instance;
 }
 #pragma clang diagnostic pop
