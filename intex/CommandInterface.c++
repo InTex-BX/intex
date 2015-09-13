@@ -28,7 +28,7 @@ InTexServer::InTexServer()
 InTexServer::~InTexServer() { server_instance = nullptr; }
 
 void InTexServer::syslog(QtMsgType type, const QString &msg) {
-  auto prefix = QTime::currentTime().toString("hh:mm:ss");
+  auto prefix = QTime::currentTime().toString(Qt::ISODate);
   switch (type) {
   case QtDebugMsg:
     prefix += " [DD] ";
