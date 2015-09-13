@@ -76,7 +76,7 @@ public:
   gpio &operator=(gpio &&) = default;
 
   void set(const bool on);
-  bool isOn();
+  bool isOn() const;
 
 private:
   config::gpio config_;
@@ -157,7 +157,7 @@ gpio::gpio(const config::gpio &config) : config_(config) {
   set_attribute(attribute::direction, config_.pinno, config_.direction);
 }
 
-bool gpio::isOn() {
+bool gpio::isOn() const {
   return get_attribute<int>(attribute::value, config_.pinno);
 }
 
@@ -188,7 +188,7 @@ public:
     state = on;
     qDebug() << "Setting pin" << name_ << "(" << pin_ << ")" << state;
   }
-  bool isOn() {
+  bool isOn() const {
     qDebug() << "Reading pin" << name_ << "(" << pin_ << ") as" << state;
     return state;
   }
@@ -263,17 +263,20 @@ public:
       qCritical() << e.what();
     }
   }
+  bool state() const { return model_->state(); }
 
 private:
   struct gpio_concept {
     virtual ~gpio_concept() = default;
     virtual void set(const bool) = 0;
+    virtual bool state() const = 0;
   };
 
   template <typename T> struct gpio_model final : gpio_concept {
     T backend_;
     gpio_model(T &&backend) : backend_(std::move(backend)) {}
     void set(const bool on) override { backend_.set(on); }
+    bool state() const override { return backend_.isOn(); }
   };
 
   std::unique_ptr<gpio_concept> model_;
