@@ -52,5 +52,17 @@ public:
 
   static Burnwire &burnwire();
 };
+
+class Watchdog {
+  struct Impl;
+  std::unique_ptr<Impl> d;
+
+  Watchdog(const config::gpio &config);
+
+public:
+  ~Watchdog();
+
+  static Watchdog &watchdog();
+};
 }
 }

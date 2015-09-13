@@ -62,6 +62,7 @@ static constexpr gpio valve1{6, "VALVE2", gpio::direction::out, false};
 static constexpr gpio heater0{19, "Heater 0", gpio::direction::out, false};
 static constexpr gpio heater1{26, "Heater 1", gpio::direction::out, false};
 static constexpr gpio burnwire{15, "Burnwire", gpio::direction::out, false};
+static constexpr gpio watchdog{21, "Watchdog", gpio::direction::out, false};
 }
 
 static constexpr int retries = 3;
@@ -453,6 +454,46 @@ Burnwire &Burnwire::burnwire() {
   return *instance;
 }
 #pragma clang diagnostic pop
+
+struct Watchdog::Impl {
+  GPIO pin;
+  QTimer timer;
+
+  Impl(const config::gpio &config)
+      :
+#ifdef BUILD_ON_RASPBERRY
+        pin(::intex::hw::gpio(config))
+#else
+        pin(::intex::hw::debug_gpio(config))
+#endif
+  {
+    QObject::connect(&timer, &QTimer::timeout, [=] {
+      try {
+        pin.set(!pin.state());
+      } catch (const std::exception &e) {
+        qCritical() << e.what();
+      }
+    });
+    timer.setInterval(duration_cast<milliseconds>(10s).count());
+    timer.setSingleShot(false);
+    timer.start();
+  }
+};
+
+Watchdog::Watchdog(const config::gpio &config)
+    : d(std::make_unique<Impl>(config)) {}
+Watchdog::~Watchdog() = default;
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+Watchdog &Watchdog::watchdog() {
+  static std::unique_ptr<Watchdog> instance{
+      new Watchdog(intex::hw::config::watchdog)};
+
+  return *instance;
+}
+#pragma clang diagnostic pop
+
 }
 }
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
