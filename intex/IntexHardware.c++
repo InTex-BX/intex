@@ -423,14 +423,11 @@ struct Burnwire::Impl {
 
   void set(const bool on) {
     if (on) {
-      using namespace std::chrono;
-      using namespace std::literals::chrono_literals;
-      pin.set(true);
-      QTimer::singleShot(duration_cast<milliseconds>(10s).count(),
+      QTimer::singleShot(duration_cast<milliseconds>(30s).count(),
                          [this] { pin.set(false); });
-    } else {
-      pin.set(false);
     }
+
+    pin.set(on);
   }
 };
 
