@@ -257,13 +257,7 @@ public:
   } catch (const std::exception &e) {
     qCritical() << e.what();
   }
-  void set(const bool on) {
-    try {
-      model_->set(on);
-    } catch (const std::exception &e) {
-      qCritical() << e.what();
-    }
-  }
+  void set(const bool on) { model_->set(on); }
   bool state() const { return model_->state(); }
 
 private:
