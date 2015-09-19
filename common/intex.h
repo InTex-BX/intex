@@ -5,7 +5,11 @@
 #include <QString>
 
 #include "asio.h"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wweak-vtables"
+#pragma clang diagnostic ignored "-Wnon-virtual-dtor"
 #include "rpc/intex.capnp.h"
+#pragma clang diagnostic pop
 
 namespace intex {
 enum class Subsystem { Video0, Video1, Log, Temperature, Pressure };
