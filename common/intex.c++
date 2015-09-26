@@ -34,12 +34,10 @@ static QString subdirectory(const enum Subsystem subsys) {
   case Subsystem::Video0:
   case Subsystem::Video1:
     return "video";
+  case Subsystem::Telemetry:
+    return "telemetry";
   case Subsystem::Log:
     return "log";
-  case Subsystem::Temperature:
-    return "temperature";
-  case Subsystem::Pressure:
-    return "pressure";
   }
 }
 
@@ -48,12 +46,10 @@ static QString suffix(const enum Subsystem subsys) {
   case Subsystem::Video0:
   case Subsystem::Video1:
     return "mkv";
+  case Subsystem::Telemetry:
+    return "data";
   case Subsystem::Log:
     return "log";
-  case Subsystem::Temperature:
-    return "";
-  case Subsystem::Pressure:
-    return "";
   }
 }
 
@@ -63,6 +59,8 @@ QString deviceName(const enum Subsystem subsys) {
     return "cam0";
   case Subsystem::Video1:
     return "cam1";
+  case Subsystem::Telemetry:
+    return "telementry";
   }
 
   throw std::runtime_error("Not implemented.");

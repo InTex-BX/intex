@@ -12,7 +12,7 @@
 #pragma clang diagnostic pop
 
 namespace intex {
-enum class Subsystem { Video0, Video1, Log, Temperature, Pressure };
+enum class Subsystem { Video0, Video1, Telemetry, Log };
 QString storageLocation(const enum Subsystem subsys, unsigned int *last =
     nullptr);
 QString deviceName(const enum Subsystem subsys);
