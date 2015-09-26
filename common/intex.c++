@@ -108,12 +108,15 @@ QString storageLocation(const enum Subsystem subsys, unsigned int *last) {
   QFileInfo basepath(initializeDataDirectory(subsys));
 
   if (!basepath.exists()) {
+    qDebug() << "Directory " << basepath.absoluteFilePath()
+             << " does not exist.";
     throw std::runtime_error("Directory " +
                              basepath.absoluteFilePath().toStdString() +
                              " does not exist.");
   }
 
   if (!basepath.isDir()) {
+    qDebug() << basepath.absoluteFilePath() << " is not a directory.";
     throw std::runtime_error(basepath.absoluteFilePath().toStdString() +
                              " is not a directory.");
   }
@@ -139,6 +142,7 @@ QString storageLocation(const enum Subsystem subsys, unsigned int *last) {
     }
   }
 
+  qDebug() << "Maximum number of files reached.";
   throw std::runtime_error("Maximum number of files reached.");
 }
 }
