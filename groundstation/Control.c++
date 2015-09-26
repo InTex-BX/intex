@@ -228,7 +228,6 @@ struct Control::Impl {
         switchWindows_(tr("Ctrl+Shift+X"), parent, SLOT(switchWindows())),
         showNormal_(tr("Esc"), parent, SLOT(showNormal())), client("*", 1234) {
     qInstallMessageHandler(output);
-    log_instance = intexWidget;
 
     connect(&telemetry_socket, &QAbstractSocket::readyRead, [this] {
       handle_datagram(telemetry_socket,
@@ -528,6 +527,8 @@ Control::Control(QWidget *parent)
 
   centralLayout->addWidget(controlWidget);
   centralLayout->addWidget(d_->intexWidget);
+
+  log_instance = d_->intexWidget;
 }
 
 Control::~Control() = default;
