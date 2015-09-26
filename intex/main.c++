@@ -35,8 +35,11 @@ static void output(QtMsgType type, const QMessageLogContext &context,
   if (server_instance)
     server_instance->syslog(type, msg);
 
-  std::cerr << QTime::currentTime() << " " << type << " " << context.function
-            << "(" << context.line << "): " << msg.toStdString() << std::endl;
+  std::cerr << QTime::currentTime() << " " << type
+#ifndef QT_NO_DEBUG
+            << " " << context.function << "(" << context.line << ")"
+#endif
+            << ": " << msg.toStdString() << std::endl;
 }
 
 int main(int argc, char *argv[]) {
