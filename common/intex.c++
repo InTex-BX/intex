@@ -63,7 +63,9 @@ QString deviceName(const enum Subsystem subsys) {
     return "telementry";
   }
 
-  throw std::runtime_error("Not implemented.");
+  throw std::runtime_error("deviceName for subsystem " +
+                           std::to_string(static_cast<int>(subsys)) +
+                           " not implemented.");
 }
 
 static void cdCreateSubdir(QDir &directory, QString subdir) {
