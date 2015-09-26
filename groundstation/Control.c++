@@ -15,9 +15,14 @@
 #include <QSizePolicy>
 #include <QLineEdit>
 #include <QIntValidator>
+#include <QHostAddress>
+#include <QUdpSocket>
+#include <QTimer>
+#include <QTextStream>
 #include <QByteArray>
 
 #include <iostream>
+#include <chrono>
 
 #include <kj/debug.h>
 #include <kj/array.h>
@@ -134,6 +139,75 @@ struct Control::Impl {
 
   IntexRpcClient client;
 
+  QUdpSocket telemetry_socket;
+  QUdpSocket log_socket;
+
+  void bind_socket(QAbstractSocket *socket, quint16 port, QString what) {
+    if (socket->bind(QHostAddress::Any, port)) {
+      qDebug().nospace() << "Listening for " << what << " datagrams on "
+                         << socket->localAddress() << ":"
+                         << socket->localPort();
+    } else {
+      using namespace std::chrono;
+      using namespace std::literals::chrono_literals;
+      qDebug() << "Error binding socket to receive " << what
+               << " datagrams:" << socket->error() << ". Retrying";
+      QTimer::singleShot(
+          duration_cast<milliseconds>(5s).count(),
+          [this, socket, port, what] { bind_socket(socket, port, what); });
+    }
+  }
+
+  void handle_log_datagram(QByteArray &buffer) {
+    QTextStream is(&buffer);
+    QString time;
+    QString cat;
+    QString msg;
+    is >> time >> cat >> msg;
+    qDebug() << time << cat << msg;
+  }
+
+  void handle_telemetry_datagram(QByteArray &buffer) {
+    auto reader = QByteArrayMessageReader(buffer);
+    auto telemetry = reader.getRoot<Telemetry>();
+
+    auto cpu_temp = telemetry.getCpuTemperature();
+
+    if (cpu_temp.hasError()) {
+      qDebug() << cpu_temp.getError().getReason().cStr();
+    } else {
+      qDebug() << cpu_temp.getTimestamp() << cpu_temp.getReading().getValue();
+    }
+
+    auto vna_temp = telemetry.getVnaTemperature();
+
+    if (vna_temp.hasError()) {
+      qDebug() << vna_temp.getError().getReason().cStr();
+    } else {
+      qDebug() << vna_temp.getTimestamp() << vna_temp.getReading().getValue();
+    }
+  }
+
+  void handle_datagram(QUdpSocket &socket,
+                       void (Control::Impl::*handler)(QByteArray &)) {
+    for (; socket.hasPendingDatagrams();) {
+      auto size = socket.pendingDatagramSize();
+      if (size < 0) {
+        qDebug() << "No datagram ready.";
+      }
+
+      QByteArray buffer;
+      buffer.resize(static_cast<int>(size));
+      auto ret = socket.readDatagram(buffer.data(), buffer.size());
+      if (ret < 0) {
+        qCritical() << "Could not read datagram.";
+        return;
+      }
+
+      (this->*handler)(buffer);
+    }
+  }
+
   Impl(QWidget *parent)
       : leftWindow(parent), rightWindow(parent),
         leftVideoWidget(new VideoWidget), rightVideoWidget(new VideoWidget),
@@ -146,6 +220,17 @@ struct Control::Impl {
         showNormal_(tr("Esc"), parent, SLOT(showNormal())), client("*", 1234) {
     qInstallMessageHandler(output);
     log_instance = intexWidget;
+
+    connect(&telemetry_socket, &QAbstractSocket::readyRead, [this] {
+      handle_datagram(telemetry_socket,
+                      &Control::Impl::handle_telemetry_datagram);
+    });
+    bind_socket(&telemetry_socket, 54431, "Telemetry");
+
+    connect(&log_socket, &QAbstractSocket::readyRead, [this] {
+      handle_datagram(log_socket, &Control::Impl::handle_log_datagram);
+    });
+    bind_socket(&log_socket, 4005, "Log");
 
     leftWindow.setWindowTitle("InTex Live Feed 0");
     rightWindow.setWindowTitle("InTex Live Feed 1");
