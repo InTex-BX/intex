@@ -121,7 +121,7 @@ QString storageLocation(const enum Subsystem subsys, unsigned int *last) {
                              " is not a directory.");
   }
 
-  auto directory = basepath.dir();
+  auto directory = QDir(basepath.filePath());
   auto suffix_ = suffix(subsys);
   auto devName = deviceName(subsys);
   auto start = (last != nullptr) ? *last : 0;
