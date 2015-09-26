@@ -141,6 +141,7 @@ struct Control::Impl {
 
   QUdpSocket telemetry_socket;
   QUdpSocket log_socket;
+  QUdpSocket auto_socket;
 
   void bind_socket(QAbstractSocket *socket, quint16 port, QString what) {
     if (socket->bind(QHostAddress::Any, port)) {
@@ -188,6 +189,14 @@ struct Control::Impl {
     }
   }
 
+  void handle_auto_datagram(QByteArray &buffer) {
+    auto reader = QByteArrayMessageReader(buffer);
+    auto auto_action = reader.getRoot<AutoActionRequest>();
+
+    qDebug() << "Request" << static_cast<uint32_t>(auto_action.getAction())
+             << "with timeout" << auto_action.getTimeout() << "s";
+  }
+
   void handle_datagram(QUdpSocket &socket,
                        void (Control::Impl::*handler)(QByteArray &)) {
     for (; socket.hasPendingDatagrams();) {
@@ -231,6 +240,11 @@ struct Control::Impl {
       handle_datagram(log_socket, &Control::Impl::handle_log_datagram);
     });
     bind_socket(&log_socket, 4005, "Log");
+
+    connect(&auto_socket, &QAbstractSocket::readyRead, [this] {
+      handle_datagram(auto_socket, &Control::Impl::handle_auto_datagram);
+    });
+    bind_socket(&auto_socket, 49543, "AutoAction");
 
     leftWindow.setWindowTitle("InTex Live Feed 0");
     rightWindow.setWindowTitle("InTex Live Feed 1");
