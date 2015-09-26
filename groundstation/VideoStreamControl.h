@@ -33,7 +33,7 @@ private:
 public:
   VideoStreamControl(VideoWidget &leftWidget, VideoWidget &rightWidget,
                      QGst::Ui::VideoWidget &leftWindow,
-                     QGst::Ui::VideoWidget &rightWindow);
+                     QGst::Ui::VideoWidget &rightWindow, const bool debug);
   ~VideoStreamControl();
 
   void switchWidgets();

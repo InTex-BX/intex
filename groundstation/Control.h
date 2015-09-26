@@ -12,7 +12,8 @@ class Control : public QMainWindow {
   std::unique_ptr<Impl> d_;
 
 public:
-  explicit Control(QWidget *parent = nullptr);
+  explicit Control(QString host, const uint16_t port, const bool debug,
+                   QWidget *parent = nullptr);
   ~Control();
 
 private Q_SLOTS:

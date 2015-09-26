@@ -160,9 +160,10 @@ static QGst::PipelinePtr makePipeline(const bool debug, const QString &port,
 VideoStreamControl::VideoStreamControl(VideoWidget &leftWidget,
                                        VideoWidget &rightWidget,
                                        QGst::Ui::VideoWidget &leftWindow,
-                                       QGst::Ui::VideoWidget &rightWindow)
-    : pipeline0(makePipeline(false, "5000", "lwidget", "lwindow")),
-      pipeline1(makePipeline(false, "5002", "rwidget", "rwindow")),
+                                       QGst::Ui::VideoWidget &rightWindow,
+                                       const bool debug)
+    : pipeline0(makePipeline(debug, "5000", "lwidget", "lwindow")),
+      pipeline1(makePipeline(debug, "5002", "rwidget", "rwindow")),
       widgetSwitcher(std::make_unique<SinkSwitcher>(pipeline0, pipeline1,
                                                     "lwidget", "rwidget")),
       windowSwitcher(std::make_unique<SinkSwitcher>(pipeline0, pipeline1,

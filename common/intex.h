@@ -4,7 +4,6 @@
 
 #include <QString>
 
-#include "asio.h"
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wweak-vtables"
 #pragma clang diagnostic ignored "-Wnon-virtual-dtor"
@@ -18,7 +17,17 @@ QString storageLocation(const enum Subsystem subsys, unsigned int *last =
 QString deviceName(const enum Subsystem subsys);
 }
 
-boost::asio::ip::address intex_ip();
-boost::asio::ip::address groundstation_ip();
-
 QDebug operator<<(QDebug dbg, const InTexHW hw);
+
+// experiment: "172.16.18.162";
+// ground station: "172.16.18.163";
+static constexpr const char *groundstation_host() { return "grace.local"; }
+static constexpr const char *intex_host() {
+#ifdef BUILD_ON_RASPBERRY
+  return "localhost";
+#else
+  return "intex.local";
+#endif
+}
+static constexpr uint16_t intex_control_port() { return 1234; }
+

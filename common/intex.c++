@@ -16,17 +16,6 @@
 
 #include "intex.h"
 
-boost::asio::ip::address intex_ip() {
-  return boost::asio::ip::address::from_string("172.16.18.162");
-}
-
-boost::asio::ip::address groundstation_ip() {
-  return boost::asio::ip::address::from_string("172.16.18.163");
-}
-
-boost::asio::ip::tcp::endpoint intex_control() {
-  return boost::asio::ip::tcp::endpoint(intex_ip(), intex_control_port);
-}
 
 namespace intex {
 static QString subdirectory(const enum Subsystem subsys) {

@@ -217,16 +217,19 @@ struct Control::Impl {
     }
   }
 
-  Impl(QWidget *parent)
+  Impl(QWidget *parent, QString host, const uint16_t control_port,
+       const bool debug = false)
       : leftWindow(parent), rightWindow(parent),
         leftVideoWidget(new VideoWidget), rightVideoWidget(new VideoWidget),
         bitrateSlider(new QSlider(Qt::Horizontal)),
         splitSlider(new QSlider(Qt::Horizontal)), intexWidget(new IntexWidget),
         videoControl(*leftVideoWidget, *rightVideoWidget,
-                     *leftWindow.videoWidget(), *rightWindow.videoWidget()),
+                     *leftWindow.videoWidget(), *rightWindow.videoWidget(),
+                     debug),
         switchWidgets_(tr("Ctrl+X"), parent, SLOT(switchWidgets())),
         switchWindows_(tr("Ctrl+Shift+X"), parent, SLOT(switchWindows())),
-        showNormal_(tr("Esc"), parent, SLOT(showNormal())), client("*", 1234) {
+        showNormal_(tr("Esc"), parent, SLOT(showNormal())),
+        client(host.toStdString(), control_port) {
     qInstallMessageHandler(output);
 
     connect(&telemetry_socket, &QAbstractSocket::readyRead, [this] {
@@ -375,8 +378,10 @@ static QWidget *setupVideoControls(Reconnect &&reconnector, Idr &&idr) {
   return videoControls;
 }
 
-Control::Control(QWidget *parent)
-    : QMainWindow(parent), d_(std::make_unique<Control::Impl>(this)) {
+Control::Control(QString host, const uint16_t control_port, const bool debug,
+                 QWidget *parent)
+    : QMainWindow(parent),
+      d_(std::make_unique<Control::Impl>(this, host, control_port, debug)) {
   setWindowTitle(QCoreApplication::applicationName());
 
   auto mainMenu = menuBar()->addMenu(tr("Menu"));
