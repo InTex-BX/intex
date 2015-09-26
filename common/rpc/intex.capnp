@@ -6,6 +6,46 @@
 
 using Cxx = import "/capnp/c++.capnp";
 
+struct Exception {
+  reason @0 :Text;
+}
+
+struct Pressure {
+  value @0: Float64;
+}
+
+struct Temperature {
+  value @0: Float64;
+}
+
+struct Status {
+  value @0: Bool;
+}
+
+struct Reading(Type) {
+  timestamp @0 :Int64;
+  union {
+    reading @1 :Type;
+    error @2 :Exception;
+  }
+}
+
+struct Telemetry {
+  cpuTemperature @0 :Reading(Temperature);
+  vnaTemperature @1 :Reading(Temperature);
+  boxTemperature @2 :Reading(Temperature);
+  antennaInnerTemperature @3 :Reading(Temperature);
+  antennaOuterTemperature @4 :Reading(Temperature);
+  tankPressure @5 :Reading(Temperature);
+  antennaPressure @6 :Reading(Temperature);
+  atmosphericPressure @7 :Reading(Temperature);
+  innerHeater @8 :Reading(Status);
+  outerHeater @9 :Reading(Status);
+  tankValve @10 :Reading(Status);
+  outletValve @11 :Reading(Status);
+  burnwire @12 :Reading(Status);
+}
+
 struct Message {
   union {
     startstream :group {
