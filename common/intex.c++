@@ -68,6 +68,7 @@ QString deviceName(const enum Subsystem subsys) {
                            " not implemented.");
 }
 
+#ifndef BUILD_ON_RASPBERRY
 static void cdCreateSubdir(QDir &directory, QString subdir) {
   if (!directory.cd(subdir)) {
     qDebug() << "Creating directory" << directory.filePath(subdir);
@@ -78,6 +79,7 @@ static void cdCreateSubdir(QDir &directory, QString subdir) {
                                directory.absolutePath().toLatin1().data());
   }
 }
+#endif
 
 static QFileInfo initializeDataDirectory(const enum Subsystem subsys) {
 #ifdef BUILD_ON_RASPBERRY
