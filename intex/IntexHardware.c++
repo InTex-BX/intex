@@ -122,8 +122,6 @@ static void export_pin(int pin) {
 
 static void sysfs_file(std::fstream &file, const gpio::attribute attr,
                        const int pin, const std::ios_base::openmode mode) {
-  file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-
   std::ostringstream fname;
   fname << "/sys/class/gpio/gpio" << pin << "/" << attr;
 
