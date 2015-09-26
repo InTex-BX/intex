@@ -2,7 +2,7 @@ project(Intex)
 cmake_minimum_required(VERSION 2.8)
 
 if(NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-  message(FATAL "Compilers other than clang are not supported yet.")
+  message(FATAL_ERROR "Compilers other than clang are not supported yet.")
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
