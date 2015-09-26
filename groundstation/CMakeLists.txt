@@ -23,5 +23,6 @@ target_link_libraries(control
   ${CAPNP_LIBRARIES}
 )
 
+qt5_use_modules(control Network)
 set_target_properties(control PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
 
