@@ -149,7 +149,7 @@ public:
 #else
         parser(check_nonnull(QGst::ElementFactory::make("videoconvert"))),
 #endif
-        muxer(check_nonnull(QGst::ElementFactory::make("matroskamux"))),
+        muxer(check_nonnull(QGst::ElementFactory::make("mpegtsmux"))),
         filesink(check_nonnull(QGst::ElementFactory::make("filesink"))) {
     filesink->setProperty("async", 0);
     bin->setStateLocked(true);
