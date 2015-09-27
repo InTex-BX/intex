@@ -31,15 +31,13 @@ struct debug_tag {};
 static QString make_downlink(const QString &host, const QString &port) {
   QString buf;
   QTextStream downlink(&buf);
-  downlink << " ! queue ! omxh264dec "
-           << " ! videoscale ! video/x-raw,width=720,height=480,framerate=30/1"
-           << " ! omxh264enc name=" << encoderName
+  downlink << " ! omxh264enc name=" << encoderName
            << " target_bitrate=400000 control-rate=variable inline-header=true"
-           << " periodicty-idr=10 interval-intraframes=10"
-           << " ! video/x-h264, profile=(string)high, level=(string)4"
+           << " periodicty-idr=250 interval-intraframes=250"
+           << " ! h264parse"
            << " ! rtph264pay config-interval=1 ! queue"
            << " ! udpsink host=" << host << " port=" << port
-           << " sync=false name=" << sinkName;
+           << " sync=false async=false name=" << sinkName;
   return buf;
 }
 
@@ -47,11 +45,8 @@ static QString make_downlink(const QString &host, const QString &port,
                              debug_tag) {
   QString buf;
   QTextStream downlink(&buf);
-  downlink << " ! queue ! videoscale"
-           << " ! video/x-raw,width=360,height=240,framerate=30/1"
-           << " ! rtpvrawpay ! queue"
-           << " ! udpsink host=" << host << " port=" << port
-           << " sync=false name=" << sinkName;
+  downlink << " ! rtpvrawpay ! udpsink host=" << host << " port=" << port
+           << " sync=false async=false name=" << sinkName;
   return buf;
 }
 
@@ -99,30 +94,37 @@ static QGst::PipelinePtr make_pipeline(const enum intex::Subsystem subsys,
     error = e.what();
   }
 
-  if (!debug) {
-    if (!device.isEmpty()) {
-      pipeline << "uvch264src name=" << devName << " device=" << device.first
-               << " initial-bitrate=5000000 peak-bitrate=5000000 "
-                  "average-bitrate=3000000"
-               << " mode=mode-video rate-control=vbr auto-start=true"
-               << " iframe-period=1 " << devName << ".vidsrc ! h264parse";
-    } else {
-      pipeline << "videotestsrc name=" << devName;
-      pipeline << " ! textoverlay font-desc=\"Sans 50\" shaded-background=true";
-      pipeline << " text=\"" << error << "\" ! videoconvert ";
-      pipeline
-          << " ! omxh264enc "
-          << " target_bitrate=400000 control-rate=variable inline-header=true"
-          << " periodicty-idr=10 interval-intraframes=10 ! h264parse";
-    }
+  bool have_device = !debug && error.isEmpty();
+  if (have_device) {
+    pipeline << "uvch264src name=" << devName;
+    pipeline << " device=" << device.first << " enable-sei=true";
+    pipeline << " initial-bitrate=5000000 peak-bitrate=5000000";
+    pipeline << " average-bitrate=3000000 rate-control=vbr";
+    pipeline << " mode=mode-video auto-start=true iframe-period=1000 ";
+    pipeline << devName
+             << ".vfsrc ! queue ! image/jpeg,width=640,height=360,rate=10";
+    pipeline << " ! jpegdec";
   } else {
-    pipeline << "videotestsrc name=" << devName;
+    pipeline << "videotestsrc name=" << devName << " pattern=smpte100";
+    pipeline
+        << " ! video/x-raw,format=I420,framerate=10/1,width=640,height=360";
+    pipeline << " ! textoverlay font-desc=\"Sans 50\" shaded-background=true";
+    pipeline << " text=\"";
+    if (debug)
+      pipeline << "Debug mode";
+    else
+      pipeline << error;
+    pipeline << "\" ! videoconvert ";
   }
-
-  pipeline << " ! queue ! tee name=" << teename << " " << teename << ".";
 
   pipeline << (debug ? make_downlink(host, port, debug_tag{})
                      : make_downlink(host, port));
+
+  if (have_device) {
+    pipeline << " " << devName << ".vidsrc"
+             << " ! queue ! video/x-h264,width=1280,height=720,framerate=30/1"
+             << " ! h264parse name=" << teename;
+  }
 
   qDebug() << buf;
 
