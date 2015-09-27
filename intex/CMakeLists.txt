@@ -1,3 +1,6 @@
+add_library(sysfs sysfs.c++)
+qt5_use_modules(sysfs Core)
+
 add_library(intex_video VideoStreamSourceControl.c++)
 qt5_use_modules(intex_video Core)
 target_link_libraries(intex_video 
@@ -6,6 +9,7 @@ target_link_libraries(intex_video
   ${GOBJECT_LIBRARIES}
   ${QTGSTREAMER_LIBRARIES}
   intex
+  sysfs
 )
 
 add_library(intex_hardware IntexHardware.c++)
