@@ -7,7 +7,6 @@ add_library(intex_gui STATIC
 )
 
 qt5_use_modules(intex_gui Widgets Core)
-set_target_properties(intex_gui PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
 target_link_libraries(intex_gui
   ${GSTREAMER_LIBRARIES}
   ${GOBJECT_LIBRARIES}
@@ -24,5 +23,4 @@ target_link_libraries(control
 )
 
 qt5_use_modules(control Network)
-set_target_properties(control PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
 
