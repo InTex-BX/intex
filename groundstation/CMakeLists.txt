@@ -20,6 +20,7 @@ target_link_libraries(control
   intex_gui
   intex_rpc
   ${CAPNP_LIBRARIES}
+  ${Boost_LIBRARIES}
 )
 
 qt5_use_modules(control Network)
