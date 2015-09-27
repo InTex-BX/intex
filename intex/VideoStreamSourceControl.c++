@@ -21,6 +21,7 @@
 #pragma clang diagnostic pop
 
 #include "VideoStreamSourceControl.h"
+#include "sysfs.h"
 
 static constexpr char encoderName[] = "encoder";
 static constexpr char sinkName[] = "udpsink";
@@ -68,22 +69,7 @@ decltype(auto) check_nonnull_impl(T &&t, int lineno, const char *func) {
   return std::forward<T>(t);
 }
 
-static QString findDevice(const int idx) {
-  auto devices =
-      QDir("/sys/class/video4linux/")
-          .entryList(QDir::AllEntries | QDir::NoDotAndDotDot, QDir::Name);
-
-  for (const auto &device : devices)
-    qDebug() << "Found device" << device;
-
-  if (idx < devices.size())
-    return QString("/dev/%1").arg(devices.at(idx));
-
-  throw std::runtime_error("Video device " + std::to_string(idx) +
-                           " not found.");
-}
-
-static QString toVideoDevice(const enum intex::Subsystem subsys) {
+static auto toVideoDevice(const enum intex::Subsystem subsys) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wswitch-enum"
   switch (subsys) {
@@ -104,7 +90,7 @@ static QGst::PipelinePtr make_pipeline(const enum intex::Subsystem subsys,
   QString teename("h264");
   QString buf;
   QTextStream pipeline(&buf);
-  QString device;
+  QPair<QString, QString> device;
   QString error;
 
   try {
@@ -115,7 +101,7 @@ static QGst::PipelinePtr make_pipeline(const enum intex::Subsystem subsys,
 
   if (!debug) {
     if (!device.isEmpty()) {
-      pipeline << "uvch264src name=" << devName << " device=" << device
+      pipeline << "uvch264src name=" << devName << " device=" << device.first
                << " initial-bitrate=5000000 peak-bitrate=5000000 "
                   "average-bitrate=3000000"
                << " mode=mode-video rate-control=vbr auto-start=true"
