@@ -518,6 +518,18 @@ Control::Control(QString host, const uint16_t control_port, const bool debug,
   d_->splitSlider->setValue(50);
   d_->splitSlider->setTracking(false);
 
+  auto startButton = new QPushButton("Start Recording");
+  connect(startButton, &QPushButton::clicked, [this] {
+    d_->client.start(InTexService::VIDEO_FEED0);
+    d_->client.start(InTexService::VIDEO_FEED1);
+  });
+
+  auto stopButton = new QPushButton("Stop Recording");
+  connect(stopButton, &QPushButton::clicked, [this] {
+    d_->client.stop(InTexService::VIDEO_FEED0);
+    d_->client.stop(InTexService::VIDEO_FEED1);
+  });
+
   auto newFileButton = new QPushButton("New File");
   connect(newFileButton, &QPushButton::clicked, [this] {
     d_->client.next(InTexService::VIDEO_FEED0);
@@ -528,6 +540,8 @@ Control::Control(QString host, const uint16_t control_port, const bool debug,
   controlLayout->addWidget(d_->bitrateSlider);
   controlLayout->addWidget(splitLabel);
   controlLayout->addWidget(d_->splitSlider);
+  controlLayout->addWidget(startButton);
+  controlLayout->addWidget(stopButton);
   controlLayout->addWidget(newFileButton);
 
   centralLayout->addWidget(controlWidget);

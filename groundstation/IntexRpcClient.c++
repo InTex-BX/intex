@@ -74,24 +74,34 @@ void IntexRpcClient::setBitrate(const InTexFeed feed, const unsigned bitrate) {
   });
 }
 
-void IntexRpcClient::stop(const InTexService service) {}
-void IntexRpcClient::start(const InTexService service) {}
-void IntexRpcClient::next(const InTexService service) {
-  auto request = intex.nextRequest();
+template <typename Request>
+static void send_request(const InTexService service, QString what,
+                         Request &&request) {
   request.setService(service);
   request.send()
       .then(
-          [service](auto &&) {
-            qDebug() << "New file for service" << static_cast<int>(service)
+          [service, what](auto &&) {
+            qDebug() << what << "for service" << static_cast<int>(service)
                      << "created.";
           },
-          [service](auto &&exception) {
-            qDebug() << "New file for service" << static_cast<int>(service)
+          [service, what](auto &&exception) {
+            qDebug() << what << "for service" << static_cast<int>(service)
                      << "failed:" << exception.getDescription().cStr();
           })
-      .detach([](auto &&exception) {
-        qDebug() << "Detach failed:" << exception.getDescription().cStr();
+      .detach([what](auto &&exception) {
+        qDebug() << what << "future detach failed:"
+                 << exception.getDescription().cStr();
       });
+}
+
+void IntexRpcClient::stop(const InTexService service) {
+  send_request(service, "Stop", intex.stopRequest());
+}
+void IntexRpcClient::start(const InTexService service) {
+  send_request(service, "Start", intex.startRequest());
+}
+void IntexRpcClient::next(const InTexService service) {
+  send_request(service, "New", intex.nextRequest());
 }
 
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
