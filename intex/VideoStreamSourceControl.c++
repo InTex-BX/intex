@@ -334,6 +334,11 @@ QGst::ElementPtr VideoStreamSourceControl::getElementByName(const char *name) {
   return elem;
 }
 
+void VideoStreamSourceControl::setVolume(const float volume) {
+  qDebug() << "Setting volume:" << volume;
+  getElementByName("volume")->setProperty("volume", volume);
+}
+
 void VideoStreamSourceControl::setBitrate(const uint64_t bitrate) {
   std::cout << "Setting bitrate: " << bitrate << std::endl;
   getElementByName(encoderName)->setProperty("target-bitrate", bitrate);

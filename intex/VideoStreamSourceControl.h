@@ -25,6 +25,7 @@ public:
                            bool debug = debug_default());
   ~VideoStreamSourceControl();
   void setBitrate(const uint64_t bitrate);
+  void setVolume(const float volume);
   void setPort(const uint16_t port);
   void next();
   void start();
