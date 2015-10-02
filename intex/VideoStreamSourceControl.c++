@@ -1,11 +1,13 @@
 #include <sstream>
 #include <stdexcept>
 #include <iostream>
-#include <atomic>
+
+#include <cstring>
 
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QObject>
 #include <QString>
 #include <QTextStream>
 
@@ -26,27 +28,24 @@
 static constexpr char encoderName[] = "encoder";
 static constexpr char sinkName[] = "udpsink";
 
-struct debug_tag {};
+static QString make_udpsink(const QString &host, const uint16_t port) {
+  QString buf;
+  QTextStream udpsink(&buf);
 
-static QString make_downlink(const QString &host, const QString &port) {
+  udpsink << " ! queue ! udpsink host=" << host << " port=" << port
+          << " sync=false async=false";
+  return buf;
+}
+
+static QString make_encode() {
   QString buf;
   QTextStream downlink(&buf);
   downlink << " ! omxh264enc name=" << encoderName
            << " target_bitrate=400000 control-rate=variable inline-header=true"
            << " periodicty-idr=250 interval-intraframes=250"
+           << " ! video/x-h264,profile=baseline"
            << " ! h264parse"
-           << " ! rtph264pay config-interval=1 ! queue"
-           << " ! udpsink host=" << host << " port=" << port
-           << " sync=false async=false name=" << sinkName;
-  return buf;
-}
-
-static QString make_downlink(const QString &host, const QString &port,
-                             debug_tag) {
-  QString buf;
-  QTextStream downlink(&buf);
-  downlink << " ! rtpvrawpay ! udpsink host=" << host << " port=" << port
-           << " sync=false async=false name=" << sinkName;
+           << " ! rtph264pay config-interval=1";
   return buf;
 }
 
@@ -79,10 +78,9 @@ static auto toVideoDevice(const enum intex::Subsystem subsys) {
 }
 
 static QGst::PipelinePtr make_pipeline(const enum intex::Subsystem subsys,
-                                       const QString &host, const QString &port,
+                                       const QString &host, const uint16_t port,
                                        const bool debug) {
-  const QString devName(deviceName(subsys));
-  QString teename("h264");
+  const QString devName(/*deviceName(subsys)*/"cam");
   QString buf;
   QTextStream pipeline(&buf);
   QPair<QString, QString> device;
@@ -95,36 +93,99 @@ static QGst::PipelinePtr make_pipeline(const enum intex::Subsystem subsys,
   }
 
   bool have_device = !debug && error.isEmpty();
+#ifdef RTPBIN
+  pipeline << " rtpbin name=rtpbin";
+#endif
+
   if (have_device) {
-    pipeline << "uvch264src name=" << devName;
-    pipeline << " device=" << device.first << " enable-sei=true";
+    /* uvch264src */
+    pipeline << " uvch264src name=" << devName;
+    pipeline << " num-buffers=-1 device=" << device.first;
+    pipeline << " enable-sei=true";
+    pipeline << " fixed-framerate=true";
+    pipeline << " async-handling=true";
+    pipeline << " message-forward=true";
+    // pipeline << " auto-start=true";
     pipeline << " initial-bitrate=5000000 peak-bitrate=5000000";
     pipeline << " average-bitrate=3000000 rate-control=vbr";
-    pipeline << " mode=mode-video auto-start=true iframe-period=1000 ";
-    pipeline << devName
-             << ".vfsrc ! queue ! image/jpeg,width=640,height=360,rate=10";
-    pipeline << " ! jpegdec";
+    pipeline << " mode=mode-video iframe-period=2000 ";
+
+    /* vidsrc */
+    pipeline << " " << devName << ".vidsrc ! queue ! "
+             << "video/x-h264,width=1280,height=720,stream-format=byte-stream"
+             << " ! h264parse ! queue name=videoqueue ";
+    pipeline << " ! splitmuxsink name=videomux muxer=mpegtsmux";
+    pipeline << " location=/media/usb-raid/video/fallback-video" << port
+             << "-%05d.mpeg";
+    pipeline << " max-size-time=0 max-size-bytes=0";
+
+    /* vfsrc */
+    pipeline << " " << devName << ".vfsrc ! queue ! "
+             << "video/x-raw,format=I420,width=640,height=360 ! videoconvert"
+             << make_encode();
   } else {
-    pipeline << "videotestsrc name=" << devName << " pattern=smpte100";
+    pipeline << " videotestsrc name=" << devName << " pattern=smpte100";
     pipeline
-        << " ! video/x-raw,format=I420,framerate=10/1,width=640,height=360";
+        << " ! video/x-raw,format=I420,framerate=24/1,width=640,height=360";
     pipeline << " ! textoverlay font-desc=\"Sans 50\" shaded-background=true";
     pipeline << " text=\"";
     if (debug)
       pipeline << "Debug mode";
     else
       pipeline << error;
-    pipeline << "\" ! videoconvert ";
+    pipeline << "\" ! videoconvert name=video" << make_encode();
   }
 
-  pipeline << (debug ? make_downlink(host, port, debug_tag{})
-                     : make_downlink(host, port));
+#ifdef RTPBIN
+  pipeline << " ! rtpbin.send_rtp_sink_0 rtpbin.send_rtp_src_0 ! ";
+#endif
+  pipeline << make_udpsink(host, port);
+#ifdef RTPBIN
+  pipeline << " rtpbin.send_rtcp_src_0 ! " << make_udpsink(host, port + 1);
+  pipeline << " udpsrc port=" << port + 5 << " ! rtpbin.recv_rtcp_sink_0";
+#endif
 
   if (have_device) {
-    pipeline << " " << devName << ".vidsrc"
-             << " ! queue ! video/x-h264,width=1280,height=720,framerate=30/1"
-             << " ! h264parse name=" << teename;
+    /* alsasrc */
+    pipeline << " alsasrc name=micro device=" << device.second;
+    pipeline << " provide-clock=true";
+    pipeline << " do-timestamp=true";
+    pipeline << " ! audio/x-raw,rate=32000 ! queue ! tee name=camaudio";
+
+    /* recording */
+    pipeline << " camaudio. ! queue ! volume volume=2.0"
+             << " ! audioconvert ! avenc_ac3 bitrate=128000"
+             << " ! queue name=audioqueue";
+    pipeline << " ! output-selector name=audio-selector "
+                "pad-negotiation-mode=active";
+    pipeline << " ! fakesink name=audiofakesink sync=false async=false";
+    pipeline << " audio-selector.";
+    pipeline << " ! splitmuxsink name=audiomux"
+             << " max-size-time=0 max-size-bytes=0"
+             << " location=/media/usb-raid/video/fallback-audio" << port
+             << "%05d.mp4";
+
+    /* stream */
+    pipeline << " camaudio.";
+  } else {
+    pipeline << " audiotestsrc ! audio/x-raw,rate=32000";
   }
+
+  /* encoder */
+  pipeline << " ! queue ! deinterleave ! volume name=volume volume=2.0";
+  pipeline << " ! audioresample ! audio/x-raw,rate=8000";
+  pipeline << " ! opusenc max-payload-size=500 bitrate=8000"
+           << " bandwidth=narrowband";
+  pipeline << " ! rtpopuspay"
+           << " ! application/x-rtp,encoding-name=X-GST-OPUS-DRAFT-SPITTKA-00";
+#ifdef RTPBIN
+  pipeline << " ! rtpbin.send_rtp_sink_1 rtpbin.send_rtp_src_1";
+#endif
+  pipeline << make_udpsink(host, port + 2);
+#ifdef RTPBIN
+  pipeline << " rtpbin.send_rtcp_src_1 ! " << make_udpsink(host, port + 3);
+  pipeline << " udpsrc port=" << port + 7 << " ! rtpbin.recv_rtcp_sink_1";
+#endif
 
   qDebug() << buf;
 
@@ -132,163 +193,106 @@ static QGst::PipelinePtr make_pipeline(const enum intex::Subsystem subsys,
       .dynamicCast<QGst::Pipeline>();
 }
 
-/* Encapsulates a single filesink with parser and muxer, supporting start and
- * stop operations.
- */
-class MultiFileSink {
-  QGst::BinPtr bin;
-  QGst::ElementPtr parser;
-  QGst::ElementPtr muxer;
-  QGst::ElementPtr filesink;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wold-style-cast"
+static GstPadProbeReturn fix_buffer_timestamp_probe(GstPad *,
+                                                    GstPadProbeInfo *info,
+                                                    gpointer user_data) {
+  GstBuffer *buffer = GST_PAD_PROBE_INFO_BUFFER(info);
 
-public:
-  MultiFileSink()
-      : bin(check_nonnull(QGst::Bin::create())),
-#ifdef BUILD_ON_RASPBERRY
-        parser(check_nonnull(QGst::ElementFactory::make("h264parse"))),
-#else
-        parser(check_nonnull(QGst::ElementFactory::make("videoconvert"))),
-#endif
-        muxer(check_nonnull(QGst::ElementFactory::make("mpegtsmux"))),
-        filesink(check_nonnull(QGst::ElementFactory::make("filesink"))) {
-    filesink->setProperty("async", 0);
-    bin->setStateLocked(true);
-    bin->add(parser, muxer, filesink);
-    bin->linkMany(parser, muxer, filesink);
-    auto parserSink = parser->getStaticPad("sink");
-    bin->addPad(QGst::GhostPad::create(parserSink, "sink"));
+  if (!GST_CLOCK_TIME_IS_VALID(GST_BUFFER_TIMESTAMP(buffer))) {
+    auto src = static_cast<GstElement *>(user_data);
+    GstClock *clock;
+    if (src != nullptr && (clock = GST_ELEMENT_CLOCK(src)) != nullptr) {
+      gst_object_ref(clock);
+      GST_BUFFER_TIMESTAMP(buffer) = gst_clock_get_time(clock);
+      gst_object_unref(clock);
+    }
   }
 
-  /* no data may flow in when calling this */
-  void start(const QString &fname) {
-    qDebug() << "Starting new file" << fname << "on" << bin->name();
-    filesink->setProperty("location", fname);
-    bin->setStateLocked(false);
-    if (!bin->syncStateWithParent())
-      throw std::runtime_error("Could not sync state with parent");
-  }
-
-  void stop() {
-    qDebug() << "Stopping file on" << bin->name();
-    auto binSinkPad = check_nonnull(bin->getStaticPad("sink"));
-    auto eos = QGst::EosEvent::create();
-    binSinkPad->sendEvent(eos);
-    bin->setStateLocked(true);
-    bin->setState(QGst::StateNull);
-  }
-
-  explicit operator QGst::ElementPtr() {
-    return bin.staticCast<QGst::Element>();
-  }
-  explicit operator const QGst::ElementPtr() const {
-    return bin.staticCast<QGst::Element>();
-  }
-};
-
-static GstPadProbeReturn iFrameProbe(GstPad *pad, GstPadProbeInfo *info,
-                                     gpointer user_data);
+  return GST_PAD_PROBE_OK;
+}
+#pragma clang diagnostic pop
 
 /* Encapsulates two MultiFileSinks with an output-selector element in front of
  * them, to change files dynamically, without halting the pipeline.
  */
-class StreamFileSink {
-  QGst::ElementPtr queue;
-  QGst::ElementPtr selector;
-  QGst::ElementPtr fakesink;
+class StreamFileSink : public QObject {
+  Q_OBJECT
+
   std::function<QString(void)> storageLocation;
 
-  enum class output_selector_mode : int {
-    none = 0,
-    all = 1,
-    active = 2,
-  };
+  QGst::PipelinePtr pipeline;
+  QGst::ElementPtr audioselector;
+  QGst::ElementPtr audiomux;
+  QGst::ElementPtr videomux;
+  QGst::ElementPtr videofakesink;
+  QGst::ElementPtr audiofakesink;
+  QGst::PadPtr audiofakesinkpad;
+  QGst::PadPtr audiofilesinkpad;
 
-  std::array<QGst::PadPtr, 3> pads;
-  std::array<MultiFileSink, 2> sinks;
-  size_t current = 0;
-  std::atomic_flag switching{false};
+  const char *videoLocation(const guint &) {
+    return strdup(storageLocation().toLocal8Bit().constData());
+  }
 
-  friend GstPadProbeReturn iFrameProbe(GstPad *pad, GstPadProbeInfo *info,
-                                       gpointer user_data);
-
-  QGst::PadPtr dummyPad() { return pads.at(2); }
-  decltype(auto) nextIdx() { return (current + 1) % sinks.size(); }
-
-  void doSwitch() {
-    using std::swap;
-
-    stop();
-    selector->setProperty("active-pad", pads.at(current));
-
-    current = nextIdx();
-#if 0
-    currentSinkPad->peer()->sendEvent(
-        QGst::CapsEvent::create(nextSinkPad->currentCaps()));
-#endif
-    switching.clear(std::memory_order_release);
+  const char *audioLocation(const guint &) {
+    return strdup(storageLocation().append(".mp4").toLocal8Bit().constData());
   }
 
 public:
   StreamFileSink(const enum intex::Subsystem subsystem,
-                 QGst::PipelinePtr pipeline)
-      : queue(check_nonnull(QGst::ElementFactory::make("queue"))),
-        selector(check_nonnull(QGst::ElementFactory::make("output-selector"))),
-        fakesink(check_nonnull(QGst::ElementFactory::make("fakesink"))),
-        storageLocation(
-            [subsystem] { return intex::storageLocation(subsystem); }) {
-    /* select active pad */
-    selector->setProperty("pad-negotiation-mode",
-                          static_cast<int>(output_selector_mode::active));
-    fakesink->setProperty("async", 0);
-    pipeline->add(queue, selector, fakesink);
-    pipeline->linkMany(queue, selector, fakesink);
-    for (const auto &sink : sinks) {
-      pipeline->add(static_cast<QGst::ElementPtr>(sink));
-      selector->link(static_cast<QGst::ElementPtr>(sink));
-    }
-    std::transform(std::begin(sinks), std::end(sinks), std::begin(pads),
-                   [](const auto &sink) {
-                     return check_nonnull(static_cast<QGst::ElementPtr>(sink)
-                                              ->getStaticPad("sink"))
-                         ->peer();
-                   });
-    auto tee = check_nonnull(pipeline->getElementByName("h264"));
-    tee->link(queue);
+                 QGst::PipelinePtr pipeline_)
+      : storageLocation(
+            [subsystem] { return intex::storageLocation(subsystem); }),
+        pipeline(pipeline_), audioselector(check_nonnull(
+                                 pipeline->getElementByName("audio-selector"))),
+        audiomux(check_nonnull(pipeline->getElementByName("audiomux"))),
+        videomux(check_nonnull(pipeline->getElementByName("videomux"))),
+        videofakesink(pipeline->getElementByName("videofakesink")),
+        audiofakesink(pipeline->getElementByName("audiofakesink")),
+        audiofakesinkpad(check_nonnull(audioselector->getStaticPad("src_0"))),
+        audiofilesinkpad(check_nonnull(audioselector->getStaticPad("src_1"))) {
+    auto src = pipeline->getElementByName("cam");
+    gst_pad_add_probe(src->getStaticPad("vidsrc"), GST_PAD_PROBE_TYPE_BUFFER,
+                      fix_buffer_timestamp_probe,
+                      pipeline->getElementByName("micro"), NULL);
+    QGlib::connect(videomux, "format-location", this,
+                   &StreamFileSink::videoLocation);
+    QGlib::connect(audiomux, "format-location", this,
+                   &StreamFileSink::audioLocation);
   }
 
   void start() {
-    sinks.at(current).start(storageLocation());
-    selector->setProperty("active-pad", pads.at(current));
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wold-style-cast"
+    g_signal_emit_by_name(
+        G_OBJECT(static_cast<GstElement *>(pipeline->getElementByName("cam"))),
+        "start-capture", NULL);
+    audioselector->setProperty("active-pad", audiofilesinkpad);
+    qDebug() << "Started";
+#pragma clang diagnostic pop
   }
 
   void stop() {
-    selector->setProperty("active-pad", dummyPad());
-    sinks.at(current).stop();
-  }
-
-  /* TODO: add future */
-  void next() {
-    if (switching.test_and_set(std::memory_order_acquire)) {
-      return;
-    }
-    sinks.at(nextIdx()).start(storageLocation());
-    gst_pad_add_probe(selector->getStaticPad("sink"), GST_PAD_PROBE_TYPE_BUFFER,
-                      iFrameProbe, this, nullptr);
-  }
-};
-
-static GstPadProbeReturn iFrameProbe(GstPad *, GstPadProbeInfo *info,
-                                     gpointer user_data) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wold-style-cast"
-  auto buffer = GST_PAD_PROBE_INFO_BUFFER(info);
-  if (!GST_BUFFER_FLAG_IS_SET(buffer, GST_BUFFER_FLAG_DELTA_UNIT)) {
+    g_signal_emit_by_name(
+        G_OBJECT(static_cast<GstElement *>(pipeline->getElementByName("cam"))),
+        "stop-capture", NULL);
+    audioselector->setProperty("active-pad", audiofakesinkpad);
 #pragma clang diagnostic pop
-    static_cast<StreamFileSink *>(user_data)->doSwitch();
-    return GST_PAD_PROBE_REMOVE;
   }
-  return GST_PAD_PROBE_PASS;
-}
+
+  void next() {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wold-style-cast"
+    g_signal_emit_by_name(G_OBJECT(static_cast<GstElement *>(videomux)),
+                          "next-file", NULL);
+    g_signal_emit_by_name(G_OBJECT(static_cast<GstElement *>(audiomux)),
+                          "next-file", NULL);
+#pragma clang diagnostic pop
+  }
+};
 
 /* Manages a single camera with its two replicated streams */
 struct VideoStreamSourceControl::Impl {
@@ -296,7 +300,7 @@ struct VideoStreamSourceControl::Impl {
   StreamFileSink filesink;
 
   Impl(const enum intex::Subsystem subsystem, const QString &host,
-       const QString &port, unsigned bitrate, const bool debug)
+       const uint16_t port, unsigned bitrate, const bool debug)
       : pipeline(make_pipeline(subsystem, host, port, debug)),
         filesink(subsystem, pipeline) {
     if (subsystem != intex::Subsystem::Video0 &&
@@ -306,12 +310,12 @@ struct VideoStreamSourceControl::Impl {
     }
     pipeline->setState(QGst::StatePlaying);
   }
-  ~Impl() { pipeline->setState(QGst::StateNull); }
+  ~Impl() noexcept { pipeline->setState(QGst::StateNull); }
 };
 
 VideoStreamSourceControl::VideoStreamSourceControl(
     const enum intex::Subsystem subsystem, const QString &host,
-    const QString &port, unsigned bitrate, bool debug)
+    const uint16_t port, unsigned bitrate, bool debug)
     : d(std::make_unique<Impl>(subsystem, host, port, bitrate, debug)) {}
 
 VideoStreamSourceControl::~VideoStreamSourceControl() = default;
@@ -343,3 +347,5 @@ void VideoStreamSourceControl::setPort(const uint16_t port) {
 void VideoStreamSourceControl::start() { d->filesink.start(); }
 void VideoStreamSourceControl::stop() { d->filesink.stop(); }
 void VideoStreamSourceControl::next() { d->filesink.next(); }
+
+#include "VideoStreamSourceControl.moc"

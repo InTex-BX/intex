@@ -20,7 +20,7 @@ class VideoStreamSourceControl {
 
 public:
   VideoStreamSourceControl(const enum intex::Subsystem subsystem,
-                           const QString &host, const QString &port,
+                           const QString &host, const uint16_t port,
                            unsigned bitrate = 400000,
                            bool debug = debug_default());
   ~VideoStreamSourceControl();
