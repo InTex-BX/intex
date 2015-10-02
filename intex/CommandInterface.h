@@ -32,11 +32,27 @@ class InTexServer final : public Command::Server {
   void setupLogStream(const uint16_t port);
   void setupLogFiles();
 
+  template <typename Callback>
+  auto dispatch_video_controls(const InTexService service,
+                               Callback &&callback) {
+    switch (service) {
+    case InTexService::VIDEO_FEED0:
+      callback(source0);
+      return kj::READY_NOW;
+    case InTexService::VIDEO_FEED1:
+      callback(source1);
+      return kj::READY_NOW;
+    }
+
+    throw std::runtime_error("Port not implemented.");
+  }
+
 public:
   InTexServer();
   ~InTexServer();
   void syslog(QtMsgType type, const QString &msg);
   kj::Promise<void> setPort(SetPortContext context) override;
+  kj::Promise<void> setVolume(SetVolumeContext context) override;
   kj::Promise<void> setGPIO(SetGPIOContext context) override;
   kj::Promise<void> start(StartContext context) override;
   kj::Promise<void> stop(StopContext context) override;

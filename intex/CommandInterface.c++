@@ -90,22 +90,23 @@ kj::Promise<void> InTexServer::setGPIO(SetGPIOContext context) {
   throw std::runtime_error("GPIO not implemented.");
 }
 
-kj::Promise<void> InTexServer::start(StartContext context) {
+kj::Promise<void> InTexServer::setVolume(SetVolumeContext context) {
   return kj::READY_NOW;
+}
+
+kj::Promise<void> InTexServer::start(StartContext context) {
+  return dispatch_video_controls(context.getParams().getService(),
+                                 [](auto &&source) { source->start(); });
 }
 
 kj::Promise<void> InTexServer::stop(StopContext context) {
-  return kj::READY_NOW;
+  return dispatch_video_controls(context.getParams().getService(),
+                                 [](auto &&source) { source->stop(); });
 }
 
 kj::Promise<void> InTexServer::next(NextContext context) {
-  switch (context.getParams().getService()) {
-  case InTexService::VIDEO_FEED0:
-    source0.next();
-    return kj::READY_NOW;
-  }
-
-  throw std::runtime_error("Port not implemented.");
+  return dispatch_video_controls(context.getParams().getService(),
+                                 [](auto &&source) { source->next(); });
 }
 
 void InTexServer::setupLogStream(const uint16_t port) {
