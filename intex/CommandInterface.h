@@ -48,7 +48,7 @@ class InTexServer final : public Command::Server {
   }
 
 public:
-  InTexServer();
+  InTexServer(QString host);
   ~InTexServer();
   void syslog(QtMsgType type, const QString &msg);
   kj::Promise<void> setPort(SetPortContext context) override;

@@ -16,9 +16,9 @@
 
 InTexServer *server_instance = nullptr;
 
-InTexServer::InTexServer()
+InTexServer::InTexServer(QString host)
     : client("127.0.0.1"),
-      source0(intex::Subsystem::Video0, "grace.local", 5000) {
+      source0(intex::Subsystem::Video0, host, 5000) {
   setupLogStream(4003);
   logs.push_back(std::make_unique<QTextStream>(&syslog_socket));
   setupLogFiles();

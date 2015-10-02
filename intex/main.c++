@@ -5,6 +5,8 @@
 #include <QTimer>
 #include <QTime>
 
+#include <boost/program_options.hpp>
+
 #include "qgst.h"
 #include "CommandInterface.h"
 #include "rpc/ez-rpc.h"
@@ -56,8 +58,27 @@ int main(int argc, char *argv[]) {
 
   qInstallMessageHandler(output);
 
-  QTimer::singleShot(0, [] {
-    auto instance = kj::heap<InTexServer>();
+  namespace po = boost::program_options;
+  po::options_description desc("InTex Experiment options");
+  // clang-format off
+  desc.add_options()
+    ("help", "print this help message")
+    ("debug", "Enable debug mode")
+    ("host", po::value<std::string>()->default_value(intex_host()),
+     "InTex groundstation host");
+  // clang-format on
+
+  po::variables_map vm;
+  po::store(po::command_line_parser(argc, argv)
+                .options(desc)
+                .allow_unregistered()
+                .run(),
+            vm);
+  po::notify(vm);
+
+  QTimer::singleShot(0, [&vm] {
+    auto instance = kj::heap<InTexServer>(
+        QString::fromStdString(vm["host"].as<std::string>()));
     server_instance = instance.get();
     intex::rpc::EzRpcServer server(kj::mv(instance), "*", 1234);
     auto &waitScope = server.getWaitScope();
