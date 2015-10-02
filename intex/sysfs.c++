@@ -15,7 +15,7 @@ using device_t = QPair<QString, QString>;
 
 static bool is_webcam(QDir &directory) {
   QFileInfo file(directory, "product");
-
+  
   if (!file.exists())
     return false;
 
@@ -69,8 +69,8 @@ static QString audio_device_name(QDir directory) {
   
 }
 
-static auto each_interface(QDir& directory, const QString &device) {
-  QRegularExpression interface_pattern("^" + device + ":[0-9]+.[0-9]+$");
+static auto each_interface(QDir& directory) {
+  QRegularExpression interface_pattern("^\\d+-\\d+(\\.\\d)+:[0-9]+.[0-9]+$");
   device_t devices;
 
   for (const auto &interface : directory.entryList()) {
@@ -90,62 +90,22 @@ static auto each_interface(QDir& directory, const QString &device) {
   return devices;
 }
 
-static auto each_device(QDir &directory, QString bus) {
-  QRegularExpression device_pattern("^" + bus + ".[0-9]+$");
-  QVector<device_t> webcams;
-
-  for (const auto &device : directory.entryList()) {
-    if (device_pattern.match(device).hasMatch()) {
-      directory.cd(device);
-      if (is_webcam(directory)) {
-        try {
-          webcams.append(each_interface(directory, device));
-        } catch (const std::runtime_error &e) {
-          qCritical() << e.what();
-        }
-      }
-      directory.cdUp();
-    }
-  }
-
-  return webcams;
-}
-
-static auto each_hc_port(QDir &directory) {
-  QRegularExpression hcport_pattern("^[0-9]+-[0-9]+$");
-
-  QVector<device_t> webcams;
-
-  for (const auto &port : directory.entryList()) {
-    if (hcport_pattern.match(port).hasMatch()) {
-      directory.cd(port);
-      webcams += each_device(directory, port);
-      directory.cdUp();
-    }
-  }
-
-  return webcams;
-}
-
 static auto enumerate_webcams() {
-  QRegularExpression hub_pattern("^usb[0-9]+");
   auto dir = QDir("/sys/bus/usb/devices");
 
   QVector<device_t> webcams;
 
-  for (const auto &hub : dir.entryList()) {
-    if (hub_pattern.match(hub).hasMatch()) {
-      qDebug() << "Found hub" << hub;
-      dir.cd(hub);
-      webcams += each_hc_port(dir);
-      dir.cdUp();
-    }
+  for (const auto &hub : dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+    dir.cd(hub);
+    if (is_webcam(dir))
+      webcams += each_interface(dir);
+    dir.cdUp();
   }
 
   return webcams;
 }
 
-QPair<QString, QString> findDevice(unsigned idx) {
+QPair<QString, QString> findDevice(int idx) {
   auto devices = enumerate_webcams();
 
   if (idx < devices.size())
