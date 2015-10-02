@@ -125,6 +125,8 @@ struct Control::Impl {
 
   QSlider *bitrateSlider;
   QSlider *splitSlider;
+  QSlider *leftVolume;
+  QSlider *rightVolume;
 
   IntexWidget * intexWidget;
 
@@ -222,7 +224,9 @@ struct Control::Impl {
       : leftWindow(parent), rightWindow(parent),
         leftVideoWidget(new VideoWidget), rightVideoWidget(new VideoWidget),
         bitrateSlider(new QSlider(Qt::Horizontal)),
-        splitSlider(new QSlider(Qt::Horizontal)), intexWidget(new IntexWidget),
+        splitSlider(new QSlider(Qt::Horizontal)),
+        leftVolume(new QSlider(Qt::Horizontal)),
+        rightVolume(new QSlider(Qt::Horizontal)), intexWidget(new IntexWidget),
         videoControl(*leftVideoWidget, *rightVideoWidget,
                      *leftWindow.videoWidget(), *rightWindow.videoWidget(),
                      debug),
@@ -308,6 +312,19 @@ struct Control::Impl {
                          break;
                        }
                      });
+
+    leftVolume->setRange(0, 1000);
+    rightVolume->setRange(0, 1000);
+    leftVolume->setTracking(false);
+    rightVolume->setTracking(false);
+    leftVolume->setValue(200);
+    rightVolume->setValue(200);
+    connect(leftVolume, &QSlider::sliderMoved, [this](int vol) {
+      client.setVolume(InTexFeed::FEED0, static_cast<float>(vol) / 100.0f);
+    });
+    connect(rightVolume, &QSlider::sliderMoved, [this](int vol) {
+      client.setVolume(InTexFeed::FEED1, static_cast<float>(vol) / 100.0f);
+    });
   }
 
   ~Impl() { log_instance = nullptr; }
@@ -316,7 +333,8 @@ struct Control::Impl {
 };
 
 template <typename Reconnect, typename Idr>
-static QWidget *setupVideoControls(Reconnect &&reconnector, Idr &&idr) {
+static QWidget *setupVideoControls(Reconnect &&reconnector, Idr &&idr,
+                                   QWidget *volume) {
   auto portLabel = new QLabel("Port:");
   portLabel->setSizePolicy(QSizePolicy::Policy::Fixed,
                            QSizePolicy::Policy::Fixed);
@@ -367,6 +385,12 @@ static QWidget *setupVideoControls(Reconnect &&reconnector, Idr &&idr) {
   idrControlsLayout->addWidget(idrLabel);
   idrControlsLayout->addWidget(idrEdit);
 
+  auto volumeLabel = new QLabel("Volume");
+  auto volumeControl = new QFrame;
+  auto volumeControlLayout = new QHBoxLayout(volumeControl);
+  volumeControlLayout->addWidget(volumeLabel);
+  volumeControlLayout->addWidget(volume);
+
   auto videoControls = new QFrame;
   videoControls->setFrameShape(QFrame::StyledPanel);
   auto videoControlsLayout = new QVBoxLayout(videoControls);
@@ -374,6 +398,7 @@ static QWidget *setupVideoControls(Reconnect &&reconnector, Idr &&idr) {
   videoControlsLayout->addWidget(portControls);
   videoControlsLayout->addWidget(iFrameControls);
   videoControlsLayout->addWidget(idrControls);
+  videoControlsLayout->addWidget(volumeControl);
 
   return videoControls;
 }
@@ -446,7 +471,7 @@ Control::Control(QString host, const uint16_t control_port, const bool debug,
         d_->client.setPort(InTexService::VIDEO_FEED0,
                            static_cast<uint16_t>(port));
       },
-      [] {});
+      [] {}, d_->leftVolume);
   leftVideoLayout->addWidget(d_->leftVideoControl);
 
   auto rightVideo = new QFrame;
@@ -461,7 +486,7 @@ Control::Control(QString host, const uint16_t control_port, const bool debug,
         d_->client.setPort(InTexService::VIDEO_FEED1,
                            static_cast<uint16_t>(port));
       },
-      [] {});
+      [] {}, d_->rightVolume);
   rightVideoLayout->addWidget(d_->rightVideoControl);
 
   videoLayout->addWidget(leftVideo);
