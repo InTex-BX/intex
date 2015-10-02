@@ -309,6 +309,10 @@ struct VideoStreamSourceControl::Impl {
           "FileSinkManager requires subsystem to be Video0 or Video1");
     }
     pipeline->setState(QGst::StatePlaying);
+    std::string filename("pipeline" +
+                         std::to_string(static_cast<int>(subsystem)));
+    GST_DEBUG_BIN_TO_DOT_FILE(pipeline.staticCast<QGst::Bin>(),
+                              GST_DEBUG_GRAPH_SHOW_ALL, filename.c_str());
   }
   ~Impl() noexcept { pipeline->setState(QGst::StateNull); }
 };
