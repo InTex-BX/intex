@@ -62,11 +62,8 @@ struct Message {
 enum InTexService {
   videoFeed0 @0;
   videoFeed1 @1;
-  tankPressure @2;
-  atmosphericPressure @3;
-  innerTemperature @4;
-  outerTemperature @5;
-  log @6;
+  telemetry @2;
+  log @3;
 }
 
 enum InTexHW {
