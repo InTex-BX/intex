@@ -74,6 +74,15 @@ void IntexRpcClient::setBitrate(const InTexFeed feed, const unsigned bitrate) {
   });
 }
 
+void IntexRpcClient::setVolume(const InTexFeed feed, const float volume) {
+  auto request = intex.setVolumeRequest();
+  request.setFeed(feed);
+  request.setVolume(volume);
+  request.send().detach([this](auto &&exception) {
+    qCritical() << exception.getDescription().cStr();
+  });
+}
+
 template <typename Request>
 static void send_request(const InTexService service, QString what,
                          Request &&request) {
