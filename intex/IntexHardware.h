@@ -77,5 +77,18 @@ public:
 
   static MiniVNA &miniVNA();
 };
+
+class USBHub {
+  struct Impl;
+  std::unique_ptr<Impl> d;
+
+  USBHub(const config::gpio &config);
+
+public:
+  ~USBHub();
+  void set(const bool on);
+
+  static USBHub &usbHub();
+};
 }
 }

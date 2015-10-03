@@ -65,6 +65,7 @@ static constexpr gpio burnwire{15, "Burnwire", gpio::direction::out, false};
 static constexpr gpio watchdog{21, "Watchdog", gpio::direction::out, false};
 static constexpr gpio mini_vna{20, "Mini VNA Supply", gpio::direction::out,
                                false};
+static constexpr gpio usb_hub{24, "Hub supply", gpio::direction::out, false};
 }
 
 static constexpr int retries = 3;
@@ -513,6 +514,36 @@ void MiniVNA::set(const bool on) { d->set(on); }
 MiniVNA &MiniVNA::miniVNA() {
   static std::unique_ptr<MiniVNA> instance{
       new MiniVNA(intex::hw::config::mini_vna)};
+
+  return *instance;
+}
+#pragma clang diagnostic pop
+
+struct USBHub::Impl {
+  GPIO pin;
+  Impl(const config::gpio &config)
+      :
+#ifdef BUILD_ON_RASPBERRY
+        pin(::intex::hw::gpio(config))
+#else
+        pin(::intex::hw::debug_gpio(config))
+#endif
+  {
+  }
+
+  void set(const bool on) { pin.set(on); }
+};
+
+USBHub::USBHub(const config::gpio &config)
+    : d(std::make_unique<Impl>(config)) {}
+USBHub::~USBHub() = default;
+
+void USBHub::set(const bool on) { d->set(on); }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+USBHub &USBHub::usbHub() {
+  static std::unique_ptr<USBHub> instance{
+      new USBHub(intex::hw::config::usb_hub)};
 
   return *instance;
 }
