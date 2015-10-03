@@ -207,9 +207,17 @@ void gpio::set(const bool on) {
     set_attribute(attribute::value, config_.pinno, static_cast<int>(on));
     if (isOn() == on)
       return;
+    {
+      export_pin(config_.pinno, false);
+      configure();
+    }
+    std::this_thread::sleep_for(10ms);
   }
 
-  throw std::runtime_error("Could not set pin");
+  throw_errno(QString("Could not set pin %1 %2")
+                  .arg(config_.pinno)
+                  .arg(on)
+                  .toStdString());
 }
 
 class debug_gpio {
