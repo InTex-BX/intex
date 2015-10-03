@@ -148,5 +148,9 @@ QDebug operator<<(QDebug dbg, const InTexHW hw) {
     return dbg << "Outer heater";
   case InTexHW::BURNWIRE:
     return dbg << "Burnwire";
+  case InTexHW::MINIVNA:
+    return dbg << "MiniVNA";
+  case InTexHW::USBHUB:
+    return dbg << "USB Hub";
   }
 }
