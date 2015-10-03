@@ -181,12 +181,22 @@ static void set_attribute(const gpio::attribute attr, const int pin,
 }
 
 template <typename T>
-static int get_attribute(const gpio::attribute attr, const int pin) {
+static T get_attribute(const gpio::attribute attr, const int pin) {
   T value;
   std::fstream file;
   sysfs_file(file, attr, pin, std::ios_base::in);
   file >> value;
   return value;
+}
+
+template <>
+std::string get_attribute<std::string>(const gpio::attribute attr,
+                                       const int pin) {
+  char value[8] = {0};
+  std::fstream file;
+  sysfs_file(file, attr, pin, std::ios_base::in);
+  file.getline(value, sizeof(value));
+  return std::string(value);
 }
 
 void gpio::configure() {
