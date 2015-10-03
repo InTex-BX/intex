@@ -129,16 +129,20 @@ static QDebug operator<<(QDebug os, const gpio::attribute attribute) {
   return os << to_string(attribute);
 }
 
-static void export_pin(int pin) {
+static void export_pin(int pin, const bool do_export = true) {
   QFileInfo gpiodir(QString("/sys/class/gpio/gpio%1").arg(pin));
-  if (gpiodir.exists())
+  /* export but exists or unexport but doesn't exist */
+  if (do_export == gpiodir.exists())
     return;
 
   std::ofstream export_;
+  export_.clear();
 
-  export_.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-
-  export_.open("/sys/class/gpio/export");
+  if (do_export) {
+    export_.open("/sys/class/gpio/export");
+  } else {
+    export_.open("/sys/class/gpio/unexport");
+  }
   export_ << pin << std::endl;
 }
 
