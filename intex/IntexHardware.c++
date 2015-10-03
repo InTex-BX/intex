@@ -63,6 +63,8 @@ static constexpr gpio heater0{19, "Heater 0", gpio::direction::out, false};
 static constexpr gpio heater1{26, "Heater 1", gpio::direction::out, false};
 static constexpr gpio burnwire{15, "Burnwire", gpio::direction::out, false};
 static constexpr gpio watchdog{21, "Watchdog", gpio::direction::out, false};
+static constexpr gpio mini_vna{20, "Mini VNA Supply", gpio::direction::out,
+                               false};
 }
 
 static constexpr int retries = 3;
@@ -481,6 +483,36 @@ Watchdog::~Watchdog() = default;
 Watchdog &Watchdog::watchdog() {
   static std::unique_ptr<Watchdog> instance{
       new Watchdog(intex::hw::config::watchdog)};
+
+  return *instance;
+}
+#pragma clang diagnostic pop
+
+struct MiniVNA::Impl {
+  GPIO pin;
+  Impl(const config::gpio &config)
+      :
+#ifdef BUILD_ON_RASPBERRY
+        pin(::intex::hw::gpio(config))
+#else
+        pin(::intex::hw::debug_gpio(config))
+#endif
+  {
+  }
+
+  void set(const bool on) { pin.set(on); }
+};
+
+MiniVNA::MiniVNA(const config::gpio &config)
+    : d(std::make_unique<Impl>(config)) {}
+MiniVNA::~MiniVNA() = default;
+
+void MiniVNA::set(const bool on) { d->set(on); }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+MiniVNA &MiniVNA::miniVNA() {
+  static std::unique_ptr<MiniVNA> instance{
+      new MiniVNA(intex::hw::config::mini_vna)};
 
   return *instance;
 }

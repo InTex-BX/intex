@@ -64,5 +64,18 @@ public:
 
   static Watchdog &watchdog();
 };
+
+class MiniVNA {
+  struct Impl;
+  std::unique_ptr<Impl> d;
+
+  MiniVNA(const config::gpio &config);
+
+public:
+  ~MiniVNA();
+  void set(const bool on);
+
+  static MiniVNA &miniVNA();
+};
 }
 }
