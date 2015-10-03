@@ -57,10 +57,10 @@ static const char *to_string(const enum config::gpio::direction &direction) {
   }
 }
 
-static constexpr gpio valve0{5, "VALVE1", gpio::direction::out, false};
-static constexpr gpio valve1{6, "VALVE2", gpio::direction::out, false};
-static constexpr gpio heater0{19, "Heater 0", gpio::direction::out, false};
-static constexpr gpio heater1{26, "Heater 1", gpio::direction::out, false};
+static constexpr gpio valve0{5, "Valve (outlet)", gpio::direction::out, false};
+static constexpr gpio valve1{6, "Valve (tank)", gpio::direction::out, false};
+static constexpr gpio heater0{19, "Heater (inner)", gpio::direction::out, false};
+static constexpr gpio heater1{26, "Heater (outer)", gpio::direction::out, false};
 static constexpr gpio burnwire{15, "Burnwire", gpio::direction::out, false};
 static constexpr gpio watchdog{21, "Watchdog", gpio::direction::out, false};
 static constexpr gpio mini_vna{20, "Mini VNA Supply", gpio::direction::out,
