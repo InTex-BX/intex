@@ -97,6 +97,19 @@ private:
   config::gpio config_;
 };
 
+static const char *to_string(const enum gpio::attribute &attribute) {
+  switch (attribute) {
+  case gpio::attribute::active_low:
+    return "active_low";
+  case gpio::attribute::direction:
+    return "direction";
+  case gpio::attribute::edge:
+    return "edge";
+  case gpio::attribute::value:
+    return "value";
+  }
+}
+
 static std::ostream &operator<<(std::ostream &os,
                                 const enum config::gpio::direction &direction) {
   return os << to_string(direction);
@@ -109,16 +122,11 @@ static QDebug &operator<<(QDebug &os,
 
 static std::ostream &operator<<(std::ostream &os,
                                 const gpio::attribute attribute) {
-  switch (attribute) {
-  case gpio::attribute::active_low:
-    return os << "active_low";
-  case gpio::attribute::direction:
-    return os << "direction";
-  case gpio::attribute::edge:
-    return os << "edge";
-  case gpio::attribute::value:
-    return os << "value";
-  }
+  return os << to_string(attribute);
+}
+
+static QDebug operator<<(QDebug os, const gpio::attribute attribute) {
+  return os << to_string(attribute);
 }
 
 static void export_pin(int pin) {
