@@ -86,6 +86,12 @@ kj::Promise<void> InTexServer::setGPIO(SetGPIOContext context) {
   case InTexHW::BURNWIRE:
     intex::hw::Burnwire::burnwire().set(params.getOn());
     return kj::READY_NOW;
+  case InTexHW::MINIVNA:
+    intex::hw::MiniVNA::miniVNA().set(params.getOn());
+    return kj::READY_NOW;
+  case InTexHW::USBHUB:
+    intex::hw::USBHub::usbHub().set(params.getOn());
+    return kj::READY_NOW;
   }
   throw std::runtime_error("GPIO not implemented.");
 }

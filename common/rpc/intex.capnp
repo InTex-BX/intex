@@ -72,6 +72,8 @@ enum InTexHW {
   heater0 @2;
   heater1 @3;
   burnwire @4;
+  minivna @5;
+  usbhub @6;
 }
 
 enum InTexFeed {

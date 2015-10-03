@@ -445,10 +445,26 @@ Control::Control(QString host, const uint16_t control_port, const bool debug,
             gpio_callback(burnwireAction, InTexHW::BURNWIRE, client, on);
           });
 
+  auto miniVNAAction = new QAction(tr("MiniVNA"), nullptr);
+  miniVNAAction->setCheckable(true);
+  connect(miniVNAAction, &QAction::triggered,
+          [ miniVNAAction, &client = d_->client ](const bool on) {
+            gpio_callback(miniVNAAction, InTexHW::MINIVNA, client, on);
+          });
+
+  auto usbHubAction = new QAction(tr("USB Hub"), nullptr);
+  usbHubAction->setCheckable(true);
+  connect(usbHubAction, &QAction::triggered,
+          [ usbHubAction, &client = d_->client ](const bool on) {
+            gpio_callback(usbHubAction, InTexHW::USBHUB, client, on);
+          });
+
   auto periphMenu = menuBar()->addMenu(tr("Peripherals"));
   periphMenu->addAction(heater0Action);
   periphMenu->addAction(heater1Action);
   periphMenu->addAction(burnwireAction);
+  periphMenu->addAction(miniVNAAction);
+  periphMenu->addAction(usbHubAction);
 
   auto centralWidget = new QWidget;
   setCentralWidget(centralWidget);
