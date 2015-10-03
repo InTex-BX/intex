@@ -132,8 +132,8 @@ static std::ostream &operator<<(std::ostream &os,
   return os << to_string(direction);
 }
 
-static QDebug &operator<<(QDebug &os,
-                          const enum config::gpio::direction &direction) {
+static QDebug operator<<(QDebug os,
+                         const enum config::gpio::direction &direction) {
   return os << to_string(direction);
 }
 
