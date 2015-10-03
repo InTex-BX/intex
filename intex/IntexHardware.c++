@@ -82,6 +82,8 @@ static constexpr gpio usb_hub{24, "Hub supply", gpio::direction::out, false};
 static constexpr int retries = 3;
 
 class gpio {
+  void configure();
+
 public:
   enum class attribute { active_low, direction, edge, value };
   gpio(const config::gpio &config);
@@ -172,15 +174,14 @@ static int get_attribute(const gpio::attribute attr, const int pin) {
   return value;
 }
 
-gpio::gpio(const config::gpio &config) : config_(config) {
-  std::cout << "Configuring GPIO " << config_.name << " (" << config_.pinno
-            << ") as " << config_.direction
-            << (config_.active_low ? "(active low)" : "") << "." << std::endl;
-
+void gpio::configure() {
+  qDebug() << config_;
   export_pin(config_.pinno);
-  set_attribute(attribute::active_low, config_.pinno, config_.active_low);
   set_attribute(attribute::direction, config_.pinno, config_.direction);
+  set_attribute(attribute::active_low, config_.pinno, config_.active_low);
 }
+
+gpio::gpio(const config::gpio &config) : config_(config) { configure(); }
 
 bool gpio::isOn() const {
   return get_attribute<int>(attribute::value, config_.pinno);
