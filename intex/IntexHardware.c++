@@ -9,6 +9,16 @@
 #include <sstream>
 #include <string>
 
+#include <cerrno>
+#include <cstring>
+
+#ifdef BUILD_ON_RASPBERRY
+#include <linux/types.h>
+extern "C" {
+#include <linux/spi/spidev.h>
+}
+#endif
+
 #include "IntexHardware.h"
 
 using namespace std::chrono;
@@ -77,6 +87,11 @@ static constexpr gpio watchdog{21, "Watchdog", gpio::direction::out, false};
 static constexpr gpio mini_vna{20, "Mini VNA Supply", gpio::direction::out,
                                false};
 static constexpr gpio usb_hub{24, "Hub supply", gpio::direction::out, false};
+
+[[noreturn]] static void throw_errno(std::string what) {
+  std::ostringstream os;
+  os << what << " (" << errno << "): " << strerror(errno);
+  throw std::runtime_error(os.str());
 }
 
 static constexpr int retries = 3;
