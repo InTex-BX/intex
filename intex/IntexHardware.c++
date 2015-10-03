@@ -46,6 +46,8 @@ struct gpio {
   const char *const name;
   enum direction direction;
   bool active_low;
+
+  friend QDebug &operator<<(QDebug &os, const gpio &config);
 };
 
 static const char *to_string(const enum config::gpio::direction &direction) {
@@ -55,6 +57,15 @@ static const char *to_string(const enum config::gpio::direction &direction) {
   case config::gpio::direction::out:
     return "out";
   }
+}
+
+static QDebug operator<<(QDebug os, const gpio &config) {
+  os << "GPIO" << config.name << "\n";
+  os << "  pin" << config.pinno << "\n";
+  os << "  direction" << to_string(config.direction) << "\n";
+  os << "  active" << (config.active_low ? "low" : "high");
+
+  return os;
 }
 
 static constexpr gpio valve0{5, "Valve (outlet)", gpio::direction::out, false};
