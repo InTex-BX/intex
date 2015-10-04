@@ -10,6 +10,7 @@
 #include "qgst.h"
 #include "CommandInterface.h"
 #include "rpc/ez-rpc.h"
+#include "intex.h"
 
 static std::ostream &operator<<(std::ostream &os, const QTime &time) {
   return os << time.toString(Qt::ISODate).toStdString();
