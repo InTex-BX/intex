@@ -244,22 +244,32 @@ public:
                  QGst::PipelinePtr pipeline_)
       : storageLocation(
             [subsystem] { return intex::storageLocation(subsystem); }),
-        pipeline(pipeline_), audioselector(check_nonnull(
-                                 pipeline->getElementByName("audio-selector"))),
-        audiomux(check_nonnull(pipeline->getElementByName("audiomux"))),
-        videomux(check_nonnull(pipeline->getElementByName("videomux"))),
+        pipeline(pipeline_),
+        audioselector(pipeline->getElementByName("audio-selector")),
+        audiomux(pipeline->getElementByName("audiomux")),
+        videomux(pipeline->getElementByName("videomux")),
         videofakesink(pipeline->getElementByName("videofakesink")),
         audiofakesink(pipeline->getElementByName("audiofakesink")),
-        audiofakesinkpad(check_nonnull(audioselector->getStaticPad("src_0"))),
-        audiofilesinkpad(check_nonnull(audioselector->getStaticPad("src_1"))) {
+        audiofakesinkpad(
+            audioselector ? check_nonnull(audioselector->getStaticPad("src_0"))
+                          : QGst::PadPtr{}),
+        audiofilesinkpad(
+            audioselector ? check_nonnull(audioselector->getStaticPad("src_1"))
+                          : QGst::PadPtr{}) {
     auto src = pipeline->getElementByName("cam");
-    gst_pad_add_probe(src->getStaticPad("vidsrc"), GST_PAD_PROBE_TYPE_BUFFER,
-                      fix_buffer_timestamp_probe,
-                      pipeline->getElementByName("micro"), NULL);
-    QGlib::connect(videomux, "format-location", this,
-                   &StreamFileSink::videoLocation);
-    QGlib::connect(audiomux, "format-location", this,
-                   &StreamFileSink::audioLocation);
+    if (src) {
+      gst_pad_add_probe(src->getStaticPad("vidsrc"), GST_PAD_PROBE_TYPE_BUFFER,
+                        fix_buffer_timestamp_probe,
+                        pipeline->getElementByName("micro"), NULL);
+    }
+    if (videomux) {
+      QGlib::connect(videomux, "format-location", this,
+                     &StreamFileSink::videoLocation);
+    }
+    if (audiomux) {
+      QGlib::connect(audiomux, "format-location", this,
+                     &StreamFileSink::audioLocation);
+    }
   }
 
   void start() {
@@ -286,10 +296,14 @@ public:
   void next() {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wold-style-cast"
-    g_signal_emit_by_name(G_OBJECT(static_cast<GstElement *>(videomux)),
-                          "next-file", NULL);
-    g_signal_emit_by_name(G_OBJECT(static_cast<GstElement *>(audiomux)),
-                          "next-file", NULL);
+    if (videomux) {
+      g_signal_emit_by_name(G_OBJECT(static_cast<GstElement *>(videomux)),
+                            "next-file", NULL);
+    }
+    if (audiomux) {
+      g_signal_emit_by_name(G_OBJECT(static_cast<GstElement *>(audiomux)),
+                            "next-file", NULL);
+    }
 #pragma clang diagnostic pop
   }
 };
