@@ -9,6 +9,7 @@
 #include <QFileInfo>
 #include <QSettings>
 #include <QTime>
+#include <QObject>
 
 #include "CommandInterface.h"
 #include "VideoStreamSourceControl.h"
@@ -18,8 +19,10 @@ InTexServer *server_instance = nullptr;
 
 InTexServer::InTexServer(QString host)
     : client("127.0.0.1"), control(host, 54431) {
-  setupLogStream(4003);
-  logs.push_back(std::make_unique<QTextStream>(&syslog_socket));
+  QObject::connect(&syslog_socket, &QAbstractSocket::connected, [this] {
+    logs.push_back(std::make_unique<QTextStream>(&syslog_socket));
+  });
+  setupLogStream(4005);
   setupLogFiles();
 }
 
