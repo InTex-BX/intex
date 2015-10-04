@@ -561,20 +561,20 @@ Control::Control(QString host, const uint16_t control_port, const bool debug,
 
   auto startButton = new QPushButton("Start Recording");
   connect(startButton, &QPushButton::clicked, [this] {
-    d_->client.start(InTexService::VIDEO_FEED0);
-    d_->client.start(InTexService::VIDEO_FEED1);
+    d_->client.start(InTexFeed::FEED0);
+    d_->client.start(InTexFeed::FEED1);
   });
 
   auto stopButton = new QPushButton("Stop Recording");
   connect(stopButton, &QPushButton::clicked, [this] {
-    d_->client.stop(InTexService::VIDEO_FEED0);
-    d_->client.stop(InTexService::VIDEO_FEED1);
+    d_->client.stop(InTexFeed::FEED0);
+    d_->client.stop(InTexFeed::FEED1);
   });
 
   auto newFileButton = new QPushButton("New File");
   connect(newFileButton, &QPushButton::clicked, [this] {
-    d_->client.next(InTexService::VIDEO_FEED0);
-    d_->client.next(InTexService::VIDEO_FEED1);
+    d_->client.next(InTexFeed::FEED0);
+    d_->client.next(InTexFeed::FEED1);
   });
 
   controlLayout->addWidget(bitrateLabel);

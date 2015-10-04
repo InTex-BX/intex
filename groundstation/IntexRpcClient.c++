@@ -84,17 +84,17 @@ void IntexRpcClient::setVolume(const InTexFeed feed, const float volume) {
 }
 
 template <typename Request>
-static void send_request(const InTexService service, QString what,
+static void send_request(const InTexFeed feed, QString what,
                          Request &&request) {
-  request.setService(service);
+  request.setFeed(feed);
   request.send()
       .then(
-          [service, what](auto &&) {
-            qDebug() << what << "for service" << static_cast<int>(service)
+          [feed, what](auto &&) {
+            qDebug() << what << "for feed" << static_cast<int>(feed)
                      << "created.";
           },
-          [service, what](auto &&exception) {
-            qDebug() << what << "for service" << static_cast<int>(service)
+          [feed, what](auto &&exception) {
+            qDebug() << what << "for feed" << static_cast<int>(feed)
                      << "failed:" << exception.getDescription().cStr();
           })
       .detach([what](auto &&exception) {
@@ -103,14 +103,15 @@ static void send_request(const InTexService service, QString what,
       });
 }
 
-void IntexRpcClient::stop(const InTexService service) {
-  send_request(service, "Stop", intex.stopRequest());
+void IntexRpcClient::stop(const InTexFeed feed) {
+  send_request(feed, "Stop", intex.stopRequest());
 }
-void IntexRpcClient::start(const InTexService service) {
-  send_request(service, "Start", intex.startRequest());
+void IntexRpcClient::start(const InTexFeed feed) {
+  send_request(feed, "Start", intex.startRequest());
 }
-void IntexRpcClient::next(const InTexService service) {
-  send_request(service, "New", intex.nextRequest());
+void IntexRpcClient::next(const InTexFeed feed) {
+  send_request(feed, "New", intex.nextRequest());
+}
 }
 
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"

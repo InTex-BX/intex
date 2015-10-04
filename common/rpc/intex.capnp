@@ -86,7 +86,7 @@ interface Command {
   setGPIO @1 (port: InTexHW, on: Bool);
   setBitrate @2 (feed: InTexFeed, bitrate: UInt32);
   setVolume @3(feed: InTexFeed, volume: Float32);
-  start @4 (service: InTexService);
-  stop @5 (service: InTexService);
-  next @6 (service: InTexService);
+  start @4 (feed: InTexFeed);
+  stop @5 (feed: InTexFeed);
+  next @6 (feed: InTexFeed);
 }

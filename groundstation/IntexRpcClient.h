@@ -26,9 +26,9 @@ public Q_SLOTS:
                std::function<void(bool)> succes);
   void setBitrate(const InTexFeed feed, const unsigned bitrate);
   void setVolume(const InTexFeed feed, const float volume);
-  void start(const InTexService service);
-  void stop(const InTexService service);
-  void next(const InTexService service);
+  void start(const InTexFeed feed);
+  void stop(const InTexFeed feed);
+  void next(const InTexFeed feed);
 
 private Q_SLOTS:
   void onConnect();
