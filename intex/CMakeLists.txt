@@ -23,7 +23,7 @@ target_link_libraries(experiment
   ${CAPNP_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
 )
-qt5_use_modules(experiment Core Network)
+qt5_use_modules(experiment Core Network SerialPort)
 
 add_executable(watchdog watchdog.c++)
 target_link_libraries(watchdog intex_hardware)
