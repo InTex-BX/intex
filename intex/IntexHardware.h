@@ -6,6 +6,7 @@ namespace intex {
 namespace hw {
 namespace config {
 struct gpio;
+struct spi;
 }
 
 class Valve {

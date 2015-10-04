@@ -89,6 +89,80 @@ static constexpr gpio mini_vna{20, "Mini VNA Supply", gpio::direction::out,
                                false};
 static constexpr gpio usb_hub{24, "Hub supply", gpio::direction::out, false};
 
+struct spi {
+  uint32_t speed;           /*bits per second*/
+  const char *const device; /*device file*/
+  const char *const name;   /*Human readable description to device*/
+  uint8_t bpw;              /*bits per word*/
+  uint16_t delay;
+  bool loopback;
+  bool cpha;          /*clock phase*/
+  bool cpol;          /*clock polarity*/
+  bool lsb_first;     /*least significant bit first*/
+  bool cs_high;       /*chip select active high*/
+  bool threewire;     /*SI/SO signals shared*/
+  bool no_cs;         /*no internal chip select control*/
+  const gpio &cs_pin; /*pin used for chip select*/
+
+  uint32_t mode() const {
+    uint32_t mode = 0;
+
+#ifdef BUILD_ON_RASPBERRY
+    if (loopback) {
+      mode |= SPI_LOOP;
+    }
+
+    if (cpha) {
+      mode |= SPI_CPHA;
+    }
+
+    if (cpol) {
+      mode |= SPI_CPOL;
+    }
+
+    if (lsb_first) {
+      mode |= SPI_LSB_FIRST;
+    }
+
+    if (cs_high) {
+      mode |= SPI_CS_HIGH;
+    }
+
+    if (threewire) {
+      mode |= SPI_3WIRE;
+    }
+
+    if (no_cs) {
+      mode |= SPI_NO_CS;
+    }
+#endif
+
+    return mode;
+  }
+
+  friend QDebug operator<<(QDebug os, const config::spi &config) {
+    os << "SPI configuration:\n";
+    os << "  loopback mode:" << config.loopback << "\n";
+    os << "  CPHA:" << config.cpha << "\n";
+    os << "  CPOL:" << config.cpol << "\n";
+    os << " " << (config.lsb_first ? "LSB" : "MSB") << "first\n";
+    os << " " << (config.threewire ? 3 : 4) << "wire mode\n";
+    os << "  CS active" << (config.cs_high ? "high" : "low") << "\n";
+    os << "  CS" << (config.no_cs ? "external" : "internal") << "\n";
+
+    return os;
+  }
+};
+
+static constexpr spi ads1248{150000,    "/dev/spidev0.0",
+                             "ADS1248", 8,
+                             100,       false,
+                             true,      false,
+                             false,     false,
+                             false,     true,
+                             ads1248_cs};
+}
+
 [[noreturn]] static void throw_errno(std::string what) {
   std::ostringstream os;
   os << what << " (" << errno << "): " << strerror(errno);
