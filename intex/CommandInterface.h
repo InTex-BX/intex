@@ -16,8 +16,8 @@
 #include "rpc/intex.capnp.h"
 #pragma clang diagnostic pop
 
-#include "VideoStreamSourceControl.h"
 #include "IntexHardware.h"
+#include "ExperimentControl.h"
 
 class InTexServer final : public Command::Server {
   static constexpr int max_logfiles = 10000;
@@ -27,25 +27,10 @@ class InTexServer final : public Command::Server {
   std::vector<std::unique_ptr<QFile>> files;
   std::vector<std::unique_ptr<QTextStream>> logs;
 
-  VideoStreamSourceControl source0;
+  intex::ExperimentControl control;
 
   void setupLogStream(const uint16_t port);
   void setupLogFiles();
-
-  template <typename Callback>
-  auto dispatch_video_controls(const InTexService service,
-                               Callback &&callback) {
-    switch (service) {
-    case InTexService::VIDEO_FEED0:
-      callback(source0);
-      return kj::READY_NOW;
-    case InTexService::VIDEO_FEED1:
-      callback(source1);
-      return kj::READY_NOW;
-    }
-
-    throw std::runtime_error("Port not implemented.");
-  }
 
 public:
   InTexServer(QString host);

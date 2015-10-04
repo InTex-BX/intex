@@ -17,8 +17,7 @@
 InTexServer *server_instance = nullptr;
 
 InTexServer::InTexServer(QString host)
-    : client("127.0.0.1"),
-      source0(intex::Subsystem::Video0, host, 5000) {
+    : client("127.0.0.1"), control(host, 54431) {
   setupLogStream(4003);
   logs.push_back(std::make_unique<QTextStream>(&syslog_socket));
   setupLogFiles();
@@ -96,23 +95,36 @@ kj::Promise<void> InTexServer::setGPIO(SetGPIOContext context) {
   throw std::runtime_error("GPIO not implemented.");
 }
 
-kj::Promise<void> InTexServer::setVolume(SetVolumeContext context) {
+kj::Promise<void> InTexServer::start(StartContext context) {
+  control.videoStart(context.getParams().getFeed());
   return kj::READY_NOW;
 }
 
-kj::Promise<void> InTexServer::start(StartContext context) {
-  return dispatch_video_controls(context.getParams().getService(),
-                                 [](auto &&source) { source->start(); });
-}
-
 kj::Promise<void> InTexServer::stop(StopContext context) {
-  return dispatch_video_controls(context.getParams().getService(),
-                                 [](auto &&source) { source->stop(); });
+  control.videoStop(context.getParams().getFeed());
+  return kj::READY_NOW;
 }
 
 kj::Promise<void> InTexServer::next(NextContext context) {
-  return dispatch_video_controls(context.getParams().getService(),
-                                 [](auto &&source) { source->next(); });
+  control.videoNext(context.getParams().getFeed());
+  return kj::READY_NOW;
+}
+
+kj::Promise<void> InTexServer::setVolume(SetVolumeContext context) {
+  auto params = context.getParams();
+  control.setVolume(params.getFeed(), params.getVolume());
+  return kj::READY_NOW;
+}
+
+kj::Promise<void> InTexServer::setBitrate(SetBitrateContext context) {
+  auto params = context.getParams();
+  control.setVolume(params.getFeed(), params.getBitrate());
+  return kj::READY_NOW;
+}
+
+kj::Promise<void> InTexServer::launch(LaunchContext) {
+  control.launched();
+  return kj::READY_NOW;
 }
 
 void InTexServer::setupLogStream(const uint16_t port) {
