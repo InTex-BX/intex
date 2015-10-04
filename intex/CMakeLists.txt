@@ -22,6 +22,7 @@ target_link_libraries(experiment
   intex_hardware
   ${CAPNP_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
+  ${Boost_LIBRARIES}
 )
 qt5_use_modules(experiment Core Network SerialPort)
 
