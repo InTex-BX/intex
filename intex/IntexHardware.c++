@@ -78,8 +78,8 @@ static QDebug operator<<(QDebug os, const gpio &config) {
   return os;
 }
 
-static constexpr gpio valve0{5, "Valve (outlet)", gpio::direction::out, false};
-static constexpr gpio valve1{6, "Valve (tank)", gpio::direction::out, false};
+static constexpr gpio valve0{6, "Valve (outlet)", gpio::direction::out, false};
+static constexpr gpio valve1{5, "Valve (tank)", gpio::direction::out, false};
 static constexpr gpio heater0{19, "Heater (inner)", gpio::direction::out, false};
 static constexpr gpio heater1{26, "Heater (outer)", gpio::direction::out, false};
 static constexpr gpio burnwire{15, "Burnwire", gpio::direction::out, false};
