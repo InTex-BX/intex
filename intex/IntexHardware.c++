@@ -354,7 +354,7 @@ struct Valve::Impl {
         pin_(::intex::hw::debug_gpio(config))
 #endif
   {
-    timer.setInterval(duration_cast<milliseconds>(30s).count());
+    timer.setInterval(duration_cast<milliseconds>(45s).count());
     timer.setSingleShot(true);
     QObject::connect(&timer, &QTimer::timeout, [this] { pwm.start(); });
     QObject::connect(&pwm, &PWM::set, &pin_, &GPIO::set);
