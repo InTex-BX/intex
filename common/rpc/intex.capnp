@@ -89,4 +89,5 @@ interface Command {
   start @4 (feed: InTexFeed);
   stop @5 (feed: InTexFeed);
   next @6 (feed: InTexFeed);
+  launch @7 ();
 }

@@ -585,7 +585,17 @@ Control::Control(QString host, const uint16_t control_port, const bool debug,
   controlLayout->addWidget(stopButton);
   controlLayout->addWidget(newFileButton);
 
+  auto launchButton = new QPushButton("Launch");
+  connect(launchButton, &QPushButton::clicked, [this] { d_->client.launch(); });
+
+  auto flightWidget = new QFrame;
+  flightWidget->setFrameShape(QFrame::StyledPanel);
+  auto flightLayout = new QHBoxLayout(flightWidget);
+
+  flightLayout->addWidget(launchButton);
+
   centralLayout->addWidget(controlWidget);
+  centralLayout->addWidget(launchButton);
   centralLayout->addWidget(d_->intexWidget);
 
   log_instance = d_->intexWidget;

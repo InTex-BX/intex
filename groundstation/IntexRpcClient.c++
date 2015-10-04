@@ -112,6 +112,12 @@ void IntexRpcClient::start(const InTexFeed feed) {
 void IntexRpcClient::next(const InTexFeed feed) {
   send_request(feed, "New", intex.nextRequest());
 }
+
+void IntexRpcClient::launch() {
+  auto request = intex.launchRequest();
+  request.send().detach([this](auto &&exception) {
+    qCritical() << exception.getDescription().cStr();
+  });
 }
 
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"

@@ -42,6 +42,7 @@ public:
   kj::Promise<void> start(StartContext context) override;
   kj::Promise<void> stop(StopContext context) override;
   kj::Promise<void> next(NextContext context) override;
+  kj::Promise<void> launch(LaunchContext context) override;
 };
 
 extern InTexServer *server_instance;
