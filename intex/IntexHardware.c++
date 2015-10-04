@@ -8,6 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <thread>
 
 #include <cerrno>
 #include <cstring>
@@ -152,6 +153,7 @@ static void export_pin(int pin, const bool do_export = true) {
   if (do_export == gpiodir.exists())
     return;
 
+  qDebug() << (do_export ? "Exporting" : "Unexporting") << pin;
   std::ofstream export_;
   export_.clear();
 
@@ -161,6 +163,9 @@ static void export_pin(int pin, const bool do_export = true) {
     export_.open("/sys/class/gpio/unexport");
   }
   export_ << pin << std::endl;
+  export_.close();
+
+  std::this_thread::sleep_for(100ms);
 }
 
 static void sysfs_file(std::fstream &file, const gpio::attribute attr,
