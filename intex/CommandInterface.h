@@ -37,6 +37,7 @@ public:
   ~InTexServer();
   void syslog(QtMsgType type, const QString &msg);
   kj::Promise<void> setPort(SetPortContext context) override;
+  kj::Promise<void> setBitrate(SetBitrateContext context) override;
   kj::Promise<void> setVolume(SetVolumeContext context) override;
   kj::Promise<void> setGPIO(SetGPIOContext context) override;
   kj::Promise<void> start(StartContext context) override;

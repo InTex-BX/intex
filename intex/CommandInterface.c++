@@ -54,10 +54,6 @@ kj::Promise<void> InTexServer::setPort(SetPortContext context) {
   auto params = context.getParams();
   const auto port = params.getPort();
   switch (params.getService()) {
-  case InTexService::VIDEO_FEED0:
-    source0.setPort(port);
-    return kj::READY_NOW;
-    break;
   case InTexService::LOG:
     setupLogStream(port);
   }
