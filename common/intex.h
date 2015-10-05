@@ -81,5 +81,6 @@ static constexpr const char *intex_host() {
 #endif
 }
 static constexpr uint16_t intex_control_port() { return 1234; }
-static constexpr uint16_t intex_auto_port() { return 32468; }
+static constexpr uint16_t intex_auto_request_port() { return 32468; }
+static constexpr uint16_t intex_auto_reply_port() { return 32469; }
 

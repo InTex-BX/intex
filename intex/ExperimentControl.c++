@@ -270,10 +270,10 @@ class ExperimentControl::Impl : public QObject {
       if (ret < 0) {
         qCritical() << "Sending announce datagram failed:"
                     << announce_socket.error() << "Reconnecting.";
-        announce_socket.connectToHost(host, intex_auto_port());
+        announce_socket.connectToHost(host, intex_auto_request_port());
       }
     } else if (announce_socket.state() == QAbstractSocket::UnconnectedState) {
-      announce_socket.connectToHost(host, intex_auto_port());
+      announce_socket.connectToHost(host, intex_auto_request_port());
     }
   }
 

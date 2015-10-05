@@ -214,7 +214,7 @@ struct Control::Impl {
             handle_auto_datagram(buffer, host, port);
           });
     });
-    intex::bind_socket(&auto_socket, intex_auto_port(), "AutoAction");
+    intex::bind_socket(&auto_socket, intex_auto_request_port(), "AutoAction");
 
     leftWindow.setWindowTitle("InTex Live Feed 0");
     rightWindow.setWindowTitle("InTex Live Feed 1");
