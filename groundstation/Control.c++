@@ -208,8 +208,9 @@ struct Control::Impl {
 
     connect(&auto_socket, &QAbstractSocket::readyRead, [this] {
       intex::handle_datagram(
-          auto_socket, [this](auto &&buffer, QHostAddress &host, quint16 port) {
-            handle_auto_datagram(buffer, host, port);
+          auto_socket,
+          [this](auto &&buffer, QHostAddress &sender, quint16 port) {
+            handle_auto_datagram(buffer, sender, port);
           });
     });
     intex::bind_socket(&auto_socket, intex_auto_request_port(), "AutoAction");
