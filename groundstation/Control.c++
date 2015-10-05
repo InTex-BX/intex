@@ -162,9 +162,10 @@ struct Control::Impl {
                      });
     countdown.start();
     notifier.exec();
+    countdown.stop();
 
     auto announce =
-        build_announce(action, notifier.result() == QDialog::Accepted);
+        build_announce(action, notifier.result() == QMessageBox::Ok);
     auto chars = announce.asChars();
     auto_socket.writeDatagram(chars.begin(), static_cast<qint64>(chars.size()),
                               host, port);
