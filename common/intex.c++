@@ -57,6 +57,8 @@ QString deviceName(const enum Subsystem subsys) {
     return "cam1";
   case Subsystem::Telemetry:
     return "telementry";
+  case Subsystem::Log:
+    return "log";
   }
 
   throw std::runtime_error("deviceName for subsystem " +
