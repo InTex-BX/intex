@@ -7,6 +7,8 @@
 #include "AspectRatioLayout.h"
 
 class VideoWidget::Container : public QWidget {
+  Q_OBJECT
+
   QGst::Ui::VideoWidget *widget_;
   QSize size_;
   static constexpr QSize minSize{16, 9};
@@ -20,6 +22,9 @@ public:
     layout->setSpacing(0);
     layout->setContentsMargins(0, 0, 0, 0);
     setMinimumSize(minSize);
+    connect(this, &VideoWidget::Container::resolutionChanged, this,
+            &VideoWidget::Container::updateGeometry,
+            Qt::ConnectionType::QueuedConnection);
   }
   ~Container();
 
@@ -43,6 +48,9 @@ public:
 
 private:
   void onVideoResized(const QGlib::ParamSpecPtr &);
+
+Q_SIGNALS:
+  void resolutionChanged();
 };
 
 VideoWidget::Container::~Container() = default;
@@ -73,23 +81,21 @@ void VideoWidget::setVideoSink(const QGst::ElementPtr &sink_) {
 
 void VideoWidget::Container::onVideoResized(const QGlib::ParamSpecPtr &) {
   auto caps = videoSink()->getStaticPad("sink")->currentCaps();
-  bool foundSize = false;
   if (caps) {
     for (auto i = unsigned{0}; i < caps->size(); ++i) {
       auto structure = caps->internalStructure(i);
       if (structure->hasField("width") && structure->hasField("height")) {
         size_.setWidth(structure->value("width").toInt());
         size_.setHeight(structure->value("height").toInt());
-        foundSize = true;
+        qDebug() << "Rescaling to" << size_;
+        Q_EMIT resolutionChanged();
+        return;
       }
     }
   }
-  if (!foundSize) {
-    size_ = minSize;
-  }
-
-  updateGeometry();
 }
+
 
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
 #include "moc_VideoWidget.cpp"
+#include "VideoWidget.moc"
