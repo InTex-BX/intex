@@ -595,8 +595,8 @@ void ExperimentControl::Impl::change_state(enum state next_state) {
     break;
   case state::floating:
     setOutletValve(open);
-    // TODO
-    QTimer::singleShot(0, [this] { change_state(state::burnwire); });
+    announceAction(AutoAction::INFLATE, 30s,
+                   [this] { change_state(state::burnwire); });
     break;
   case state::measuring1:
     break;
@@ -620,6 +620,8 @@ void ExperimentControl::Impl::change_state(enum state next_state) {
   case state::curing:
     connect(&timeout, &QTimer::timeout, this, &Impl::curing_timedout);
     timeout.start(duration_cast<milliseconds>(cure_timeout).count());
+    announceAction(AutoAction::DEFLATE, 30s,
+                   [this] { change_state(state::equalizing); });
     break;
   case state::equalizing:
     setTankValve(closed);

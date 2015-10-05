@@ -50,6 +50,25 @@ struct Telemetry {
   burnwire @12 :Reading(Status);
 }
 
+enum AutoAction {
+  inflate @0;
+  measure @1;
+  deflate @2;
+}
+
+struct AutoActionRequest {
+  action @0 :AutoAction;
+  timeout @1 :UInt32;
+}
+
+struct AutoActionReply {
+  action @0 :AutoAction;
+  union {
+    accept @1 :Void;
+    cancel @2 :Void;
+  }
+}
+
 struct Message {
   union {
     startstream :group {
