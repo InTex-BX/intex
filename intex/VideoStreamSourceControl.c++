@@ -127,13 +127,16 @@ static QGst::PipelinePtr make_pipeline(const enum intex::Subsystem subsys,
     pipeline << " videotestsrc name=" << devName << " pattern=smpte100";
     pipeline
         << " ! video/x-raw,format=I420,framerate=24/1,width=640,height=360";
+#ifdef BUILD_ON_RASPBERRY
     pipeline << " ! textoverlay font-desc=\"Sans 50\" shaded-background=true";
     pipeline << " text=\"";
     if (debug)
       pipeline << "Debug mode";
     else
       pipeline << error;
-    pipeline << "\" ! videoconvert name=video" << make_encode();
+    pipeline << "\"";
+#endif
+    pipeline << " ! videoconvert name=video" << make_encode();
   }
 
 #ifdef RTPBIN
