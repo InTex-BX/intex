@@ -3,6 +3,7 @@
 #include <functional>
 
 #include <QString>
+#include <QObject>
 #include <QByteArray>
 #include <QVector>
 #include <QUdpSocket>
@@ -21,6 +22,19 @@
 #pragma clang diagnostic pop
 
 namespace intex {
+
+class LogAdapter : public QObject {
+  Q_OBJECT
+
+public:
+  LogAdapter &operator<<(const QString &msg);
+
+  // clang-format off
+Q_SIGNALS:
+  void log(QString);
+  // clang-format on
+};
+
 enum class Subsystem { Video0, Video1, Telemetry, Log };
 QString storageLocation(const enum Subsystem subsys, unsigned int *last =
     nullptr);

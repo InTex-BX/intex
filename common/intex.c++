@@ -19,6 +19,11 @@
 
 
 namespace intex {
+LogAdapter &LogAdapter::operator<<(const QString &msg) {
+  Q_EMIT log(msg);
+  return *this;
+}
+
 static QString subdirectory(const enum Subsystem subsys) {
   switch (subsys) {
   case Subsystem::Video0:
@@ -237,3 +242,6 @@ QDebug operator<<(QDebug dbg, const InTexHW hw) {
     return dbg << "USB Hub";
   }
 }
+
+#pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
+#include "moc_intex.cpp"
