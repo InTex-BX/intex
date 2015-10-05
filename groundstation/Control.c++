@@ -20,6 +20,7 @@
 #include <QTimer>
 #include <QTextStream>
 #include <QByteArray>
+#include <QMessageBox>
 
 #include <iostream>
 #include <chrono>
@@ -63,6 +64,20 @@ static void gpio_callback(QAction *menuItem, const InTexHW hw,
              << (success ? "was successful" : "failed");
     menuItem->setEnabled(true);
   });
+}
+
+static kj::Array<capnp::word> build_announce(const AutoAction action,
+                                             const bool accept) {
+  ::capnp::MallocMessageBuilder message;
+  auto reply = message.initRoot<AutoActionReply>();
+
+  reply.setAction(action);
+  if (accept) {
+    reply.setAccept();
+  } else {
+    reply.setCancel();
+  }
+  return messageToFlatArray(message);
 }
 
 struct Control::Impl {
@@ -124,11 +139,39 @@ struct Control::Impl {
     }
   }
 
-  void handle_auto_datagram(QByteArray &buffer) {
+  void handle_auto_datagram(QByteArray &buffer, QHostAddress &host,
+                            quint16 port) {
     using namespace std::chrono;
     auto reader = intex::QByteArrayMessageReader(buffer);
     auto auto_action = reader.getRoot<AutoActionRequest>();
+    const auto action = auto_action.getAction();
+    auto timeout = auto_action.getTimeout();
+    QString fmt =
+        QString("Auto-iniating %1 in %2 seconds").arg(intex::to_string(action));
 
+    QMessageBox notifier(QMessageBox::Question, "Confirm action",
+                         fmt.arg(timeout--),
+                         QMessageBox::Ok | QMessageBox::Cancel);
+    QTimer countdown;
+    countdown.setInterval(duration_cast<milliseconds>(1s).count());
+    QObject::connect(&countdown, &QTimer::timeout,
+                     [fmt, &timeout, &notifier, &countdown] {
+                       notifier.setText(fmt.arg(timeout));
+                       if (timeout == 0) {
+                         countdown.disconnect();
+                         notifier.reject();
+                       } else {
+                         --timeout;
+                       }
+                     });
+    countdown.start();
+    notifier.exec();
+
+    auto announce =
+        build_announce(action, notifier.result() == QDialog::Accepted);
+    auto chars = announce.asChars();
+    auto_socket.writeDatagram(chars.begin(), static_cast<qint64>(chars.size()),
+                              host, port);
   }
 
   Impl(QWidget *parent, QString host, const uint16_t control_port,
@@ -166,10 +209,10 @@ struct Control::Impl {
     intex::bind_socket(&log_socket, 4005, "Log");
 
     connect(&auto_socket, &QAbstractSocket::readyRead, [this] {
-      intex::handle_datagram(auto_socket,
-                             [this](auto &&buffer, QHostAddress &, quint16) {
-                               handle_auto_datagram(buffer);
-                             });
+      intex::handle_datagram(
+          auto_socket, [this](auto &&buffer, QHostAddress &host, quint16 port) {
+            handle_auto_datagram(buffer, host, port);
+          });
     });
     intex::bind_socket(&auto_socket, intex_auto_port(), "AutoAction");
 
