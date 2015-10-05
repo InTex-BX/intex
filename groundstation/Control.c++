@@ -379,7 +379,6 @@ static QWidget *setupVideoControls(Reconnect &&reconnector, Idr &&idr,
   volumeControlLayout->addWidget(volume);
 
   auto videoControls = new QFrame;
-  videoControls->setFrameShape(QFrame::StyledPanel);
   auto videoControlsLayout = new QVBoxLayout(videoControls);
 
   videoControlsLayout->addWidget(portControls);

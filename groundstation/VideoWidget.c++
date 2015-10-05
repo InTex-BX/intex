@@ -19,10 +19,6 @@ public:
     layout->addWidget(widget_);
     layout->setSpacing(0);
     layout->setContentsMargins(0, 0, 0, 0);
-    QPalette palette = this->palette();
-    palette.setColor(backgroundRole(), QColor(0, 0, 255));
-    setPalette(palette);
-    setAutoFillBackground(true);
     setMinimumSize(minSize);
   }
   ~Container();
@@ -54,15 +50,10 @@ constexpr QSize VideoWidget::Container::minSize;
 
 VideoWidget::VideoWidget(QWidget *parent)
     : QFrame(parent), container(new Container(this)) {
-  setFrameStyle(QFrame::Box | QFrame::Plain);
   auto layout = new AspectRatioLayout(this);
   layout->addWidget(container);
   layout->setSpacing(0);
   layout->setContentsMargins(0, 0, 0, 0);
-  QPalette palette = this->palette();
-  palette.setColor(backgroundRole(), QColor(0, 255, 0));
-  setPalette(palette);
-  setAutoFillBackground(true);
 }
 
 void VideoWidget::mouseDoubleClickEvent(QMouseEvent *event) {
