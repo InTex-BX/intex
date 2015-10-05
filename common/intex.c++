@@ -64,38 +64,13 @@ QString deviceName(const enum Subsystem subsys) {
                            " not implemented.");
 }
 
-#ifndef BUILD_ON_RASPBERRY
-static void cdCreateSubdir(QDir &directory, QString subdir) {
-  if (!directory.cd(subdir)) {
-    qDebug() << "Creating directory" << directory.filePath(subdir);
-    directory.mkdir(subdir);
-    if (!directory.cd(subdir))
-      throw std::runtime_error(std::string("Could not create '") +
-                               subdir.toLatin1().data() + "' directory in " +
-                               directory.absolutePath().toLatin1().data());
-  }
-}
-#endif
-
 static QFileInfo initializeDataDirectory(const enum Subsystem subsys) {
 #ifdef BUILD_ON_RASPBERRY
-  return QFileInfo(
-      QString("/media/usb-raid/%1").arg(subdirectory(subsys)));
+  QString path("/media/usb-raid/%1");
 #else
-  QDir basePath{
-      QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)};
-
-  if(!basePath.exists()) {
-    throw std::runtime_error(std::string("Document directory ") +
-                             basePath.absolutePath().toLatin1().data() +
-                             " does not exist.");
-  }
-
-  cdCreateSubdir(basePath, "intex");
-  cdCreateSubdir(basePath, "data");
-  cdCreateSubdir(basePath, subdirectory(subsys));
-  return basePath.absolutePath();
+  QString path("/Volumes/Intex/data/%1");
 #endif
+  return QFileInfo(path.arg(subdirectory(subsys)));
 }
 
 QString storageLocation(const enum Subsystem subsys, unsigned int *last) {
