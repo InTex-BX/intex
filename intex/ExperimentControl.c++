@@ -553,16 +553,19 @@ public:
       qCritical() << "VNA measurement already running";
       return;
     }
+    intex::hw::MiniVNA::miniVNA().set(On);
     nva.setProcessChannelMode(QProcess::MergedChannels);
     nva.setProgram("java");
     QStringList args;
     args << "-Dfstart=370000000";
     args << "-Dfstop=500000000";
     args << "-Dfsteps=261";
-    args << "-Dcalfile=REFL_miniVNA-pro-2015-10-04.cal";
+    args << "-Dcalfile=REFL_tinyVNA-2015-10-04.cal";
     args << "-Dscanmode=REFL";
-    args << "-Dexports=xls";
-    args << "-jar /home/intex/vnaJ-hl.3.1.5.jar";
+    args << "-Dexports=snp";
+    args << "-jar";
+    args << "/home/intex/vnaJ-hl.3.1.5.jar";
+    nva.setArguments(args);
 
     connect(
         &nva, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(
@@ -570,6 +573,7 @@ public:
         [this](const int exit_code, const QProcess::ExitStatus exit_status) {
           qDebug() << "Measurement done" << exit_code << exit_status << ":";
           qDebug() << nva.readAllStandardOutput();
+          intex::hw::MiniVNA::miniVNA().set(Off);
         });
     nva.start();
   }
