@@ -117,7 +117,7 @@ kj::Promise<void> InTexServer::setVolume(SetVolumeContext context) {
 
 kj::Promise<void> InTexServer::setBitrate(SetBitrateContext context) {
   auto params = context.getParams();
-  control.setVolume(params.getFeed(), params.getBitrate());
+  control.setBitrate(params.getFeed(), params.getBitrate());
   return kj::READY_NOW;
 }
 
