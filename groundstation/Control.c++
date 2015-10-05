@@ -21,6 +21,7 @@
 #include <QTextStream>
 #include <QByteArray>
 #include <QMessageBox>
+#include <QFile>
 
 #include <iostream>
 #include <chrono>
@@ -109,12 +110,25 @@ struct Control::Impl {
   QUdpSocket log_socket;
   QUdpSocket auto_socket;
 
+  QFile telemetry_file;
+  QFile log_file;
+
   void handle_log_datagram(QByteArray &buffer) {
+    const auto written = log_file.write(buffer);
+    if (written != buffer.size()) {
+      qCritical() << "Could only write" << written << "bytes of"
+                  << buffer.size() << "bytes log telegram";
+    }
     QTextStream is(&buffer);
     qDebug() << is.readLine();
   }
 
   void handle_telemetry_datagram(QByteArray &buffer) {
+    const auto written = telemetry_file.write(buffer);
+    if (written != buffer.size()) {
+      qCritical() << "Could only write" << written << "bytes of"
+                  << buffer.size() << "bytes telemetry telegram";
+    }
     auto reader = intex::QByteArrayMessageReader(buffer);
     auto telemetry = reader.getRoot<Telemetry>();
 
@@ -186,9 +200,18 @@ struct Control::Impl {
         switchWidgets_(tr("Ctrl+X"), parent, SLOT(switchWidgets())),
         switchWindows_(tr("Ctrl+Shift+X"), parent, SLOT(switchWindows())),
         showNormal_(tr("Esc"), parent, SLOT(showNormal())),
-        client(host.toStdString(), control_port) {
+        client(host.toStdString(), control_port),
+        telemetry_file(storageLocation(intex::Subsystem::Telemetry)),
+        log_file(storageLocation(intex::Subsystem::Log)) {
     connect(&adapter, &intex::LogAdapter::log, intexWidget, &IntexWidget::log);
     qInstallMessageHandler(output);
+
+    if (!telemetry_file.open(QIODevice::WriteOnly))
+      qCritical() << "Could not open file" << telemetry_file.fileName()
+                  << "for writing";
+    if (!log_file.open(QIODevice::WriteOnly))
+      qCritical() << "Could not open file" << log_file.fileName()
+                  << "for writing";
 
     connect(&telemetry_socket, &QAbstractSocket::readyRead, [this] {
       intex::handle_datagram(telemetry_socket,
