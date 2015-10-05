@@ -131,19 +131,25 @@ static const char h264caps[] =
     "encoding-name=(string)H264, packetization-mode=(string)1, "
     "payload=(int)96";
 
-static QGst::PipelinePtr makePipeline(const bool debug, const QString &port,
+static QGst::PipelinePtr makePipeline(const bool debug, const uint16_t port,
                                       const QString &widgetName,
                                       const QString &windowName) {
   QString pipeline;
   QTextStream s(&pipeline);
 
-  s << "udpsrc port=" << port << " caps=";
+#ifdef RTPBIN
+  s << "rtpbin name=rtpbin";
+#endif
+  s << " udpsrc port=" << port << " caps=";
 
   if (debug) {
     s << "\"" << caps << "\" ! queue ! rtpvrawdepay";
   } else {
-    s << "\"" << h264caps << "\" ! queue ! rtph264depay";
-    s << " ! h264parse ! avdec_h264";
+    s << "\"" << h264caps << "\" ! queue";
+#ifdef RTPBIN
+    s << " ! rtpbin.recv_rtp_sink_0 rtpbin.";
+#endif
+    s << " ! rtph264depay ! h264parse ! avdec_h264";
   }
 
   s << " ! videoconvert ! tee name=raw";
@@ -211,8 +217,8 @@ VideoStreamControl::VideoStreamControl(VideoWidget &leftWidget,
                                        QGst::Ui::VideoWidget &leftWindow,
                                        QGst::Ui::VideoWidget &rightWindow,
                                        const bool debug)
-    : pipeline0(makePipeline(debug, "5000", "lwidget", "lwindow")),
-      pipeline1(makePipeline(debug, "5002", "rwidget", "rwindow")),
+    : pipeline0(makePipeline(debug, 5000, "lwidget", "lwindow")),
+      pipeline1(makePipeline(debug, 5010, "rwidget", "rwindow")),
       audio(debug ? QGst::PipelinePtr{} : make_audio_pipeline(5000, 5010)),
       widgetSwitcher(std::make_unique<SinkSwitcher>(pipeline0, pipeline1,
                                                     "lwidget", "rwidget")),
