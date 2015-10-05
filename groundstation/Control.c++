@@ -254,8 +254,8 @@ struct Control::Impl {
     auto setBitrateChanged = [this](int) {
       const auto split = static_cast<unsigned>(splitSlider->value());
       const auto bitrate = static_cast<unsigned>(bitrateSlider->value());
-      client.setBitrate(InTexFeed::FEED0, split * bitrate);
-      client.setBitrate(InTexFeed::FEED1, (100 - split) * bitrate);
+      client.setBitrate(InTexFeed::FEED0, split * bitrate * 10);
+      client.setBitrate(InTexFeed::FEED1, (100 - split) * bitrate * 10);
     };
     QObject::connect(bitrateSlider, &QSlider::valueChanged, setBitrateChanged);
     QObject::connect(splitSlider, &QSlider::valueChanged, setBitrateChanged);
