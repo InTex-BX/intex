@@ -548,7 +548,7 @@ Control::Control(QString host, const uint16_t control_port, const bool debug,
   flightLayout->addWidget(nvaButton);
 
   centralLayout->addWidget(controlWidget);
-  centralLayout->addWidget(launchButton);
+  centralLayout->addWidget(flightWidget);
   centralLayout->addWidget(d_->intexWidget);
 
   log_instance = d_->intexWidget;
