@@ -19,6 +19,7 @@ public:
 private:
   QGst::PipelinePtr pipeline0;
   QGst::PipelinePtr pipeline1;
+  QGst::PipelinePtr audio;
 
   enum class Type {
     Widget,

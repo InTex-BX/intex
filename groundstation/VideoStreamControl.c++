@@ -157,6 +157,55 @@ static QGst::PipelinePtr makePipeline(const bool debug, const QString &port,
   return QGst::Parse::launch(pipeline).dynamicCast<QGst::Pipeline>();
 }
 
+static const char opuscaps[] =
+    "application/x-rtp,media=audio,clock-rate=48000,"
+    "encoding-name=X-GST-OPUS-DRAFT-SPITTKA-00,"
+    "sprop-maxcapturerate=24000,sprop-stereo=0,payload=96,encoding-params=2";
+
+static auto make_audio(const uint16_t port) {
+  QString pipeline;
+  QTextStream s(&pipeline);
+
+  QString teename = QString("audio%1").arg(port);
+#ifdef RTPBIN
+  s << " udpsrc port=" << port + 1 << " ! rtpbin.recv_rtcp_sink_0";
+  s << " rtpbin.send_rtcp_src_0 ! udpsink port=" << port + 5
+    << " sync=false async=false";
+#endif
+  s << " udpsrc port=" << port + 2 << " caps=" << opuscaps;
+#ifdef RTPBIN
+  s << " ! rtpbin.recv_rtp_sink_1 rtpbin. ";
+#endif
+  s << " ! rtpopusdepay ! opusdec ! queue ! tee name=" << teename;
+  s << " " << teename << ". ! output-selector name=" << teename << "selector"
+    << " pad-negotiation-mode=active";
+  s << " ! fakesink name=" << teename << "fakesink sync=false async=false";
+
+#ifdef RTPBIN
+  s << " udpsrc port=" << port + 3 << " ! rtpbin.recv_rtcp_sink_1";
+  s << " rtpbin.send_rtcp_src_1 ! udpsink port=" << port + 7
+    << " sync=false async=false";
+#endif
+
+  return pipeline;
+}
+
+static auto make_audio_pipeline(const uint16_t port1, const uint16_t port2) {
+  QString pipeline;
+  QTextStream s(&pipeline);
+
+  s << make_audio(port1);
+  s << make_audio(port2);
+
+  s << " interleave name=interleave ! osxaudiosink sync = false async = false ";
+  s << " audio" << port1 << ". ! queue ! audioconvert ! interleave.";
+  s << " audio" << port2 << ". ! queue ! audioconvert ! interleave.";
+
+  qDebug() << pipeline;
+
+  return QGst::Parse::launch(pipeline).dynamicCast<QGst::Pipeline>();
+}
+
 VideoStreamControl::VideoStreamControl(VideoWidget &leftWidget,
                                        VideoWidget &rightWidget,
                                        QGst::Ui::VideoWidget &leftWindow,
@@ -164,6 +213,7 @@ VideoStreamControl::VideoStreamControl(VideoWidget &leftWidget,
                                        const bool debug)
     : pipeline0(makePipeline(debug, "5000", "lwidget", "lwindow")),
       pipeline1(makePipeline(debug, "5002", "rwidget", "rwindow")),
+      audio(debug ? QGst::PipelinePtr{} : make_audio_pipeline(5000, 5010)),
       widgetSwitcher(std::make_unique<SinkSwitcher>(pipeline0, pipeline1,
                                                     "lwidget", "rwidget")),
       windowSwitcher(std::make_unique<SinkSwitcher>(pipeline0, pipeline1,
@@ -176,11 +226,15 @@ VideoStreamControl::VideoStreamControl(VideoWidget &leftWidget,
 
   pipeline0->setState(QGst::StatePlaying);
   pipeline1->setState(QGst::StatePlaying);
+  if (audio)
+    audio->setState(QGst::StatePlaying);
 }
 
 VideoStreamControl::~VideoStreamControl() {
   pipeline0->setState(QGst::StateNull);
   pipeline1->setState(QGst::StateNull);
+  if (audio)
+    audio->setState(QGst::StateNull);
 }
 
 QGst::ElementPtr VideoStreamControl::get(enum Type type, enum Stream side) {
