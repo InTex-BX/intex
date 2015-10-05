@@ -30,7 +30,7 @@ set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF) 
 find_package(Boost COMPONENTS system program_options REQUIRED)
 
-find_package(Qt5 COMPONENTS Widgets Core Network REQUIRED)
+find_package(Qt5 COMPONENTS Widgets Core Network SerialPort REQUIRED)
 
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
