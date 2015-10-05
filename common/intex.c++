@@ -13,6 +13,7 @@
 #include <QFileInfo>
 #include <QStandardPaths>
 #include <QTextStream>
+#include <QTimer>
 
 #include "intex.h"
 
@@ -199,6 +200,21 @@ void handle_datagram(QUdpSocket &socket,
     }
 
     handler(buffer);
+  }
+}
+
+void bind_socket(QAbstractSocket *socket, quint16 port, QString what) {
+  if (socket->bind(QHostAddress::Any, port)) {
+    qDebug().nospace() << "Listening for " << what << " datagrams on "
+                       << socket->localAddress() << ":" << socket->localPort();
+  } else {
+    using namespace std::chrono;
+    using namespace std::literals::chrono_literals;
+    qDebug() << "Error binding socket to receive " << what
+             << " datagrams:" << socket->error() << ". Retrying";
+    QTimer::singleShot(
+        duration_cast<milliseconds>(5s).count(),
+        [socket, port, what] { bind_socket(socket, port, what); });
   }
 }
 }

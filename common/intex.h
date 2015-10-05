@@ -6,6 +6,7 @@
 #include <QByteArray>
 #include <QVector>
 #include <QUdpSocket>
+#include <QAbstractSocket>
 
 #include <kj/debug.h>
 #include <kj/array.h>
@@ -46,6 +47,7 @@ public:
   kj::ArrayPtr<const capnp::word> getSegment(uint id) override;
 };
 
+void bind_socket(QAbstractSocket *socket, quint16 port, QString what);
 void handle_datagram(QUdpSocket &socket,
                      std::function<void(QByteArray &)> handler);
 }

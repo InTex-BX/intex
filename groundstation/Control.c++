@@ -94,22 +94,6 @@ struct Control::Impl {
   QUdpSocket log_socket;
   QUdpSocket auto_socket;
 
-  void bind_socket(QAbstractSocket *socket, quint16 port, QString what) {
-    if (socket->bind(QHostAddress::Any, port)) {
-      qDebug().nospace() << "Listening for " << what << " datagrams on "
-                         << socket->localAddress() << ":"
-                         << socket->localPort();
-    } else {
-      using namespace std::chrono;
-      using namespace std::literals::chrono_literals;
-      qDebug() << "Error binding socket to receive " << what
-               << " datagrams:" << socket->error() << ". Retrying";
-      QTimer::singleShot(
-          duration_cast<milliseconds>(5s).count(),
-          [this, socket, port, what] { bind_socket(socket, port, what); });
-    }
-  }
-
   void handle_log_datagram(QByteArray &buffer) {
     QTextStream is(&buffer);
     QString time;
@@ -169,19 +153,19 @@ struct Control::Impl {
         handle_telemetry_datagram(buffer);
       });
     });
-    bind_socket(&telemetry_socket, 54431, "Telemetry");
+    intex::bind_socket(&telemetry_socket, 54431, "Telemetry");
 
     connect(&log_socket, &QAbstractSocket::readyRead, [this] {
       intex::handle_datagram(
           log_socket, [this](auto &&buffer) { handle_log_datagram(buffer); });
     });
-    bind_socket(&log_socket, 4005, "Log");
+    intex::bind_socket(&log_socket, 4005, "Log");
 
     connect(&auto_socket, &QAbstractSocket::readyRead, [this] {
       intex::handle_datagram(
           auto_socket, [this](auto &&buffer) { handle_auto_datagram(buffer); });
     });
-    bind_socket(&auto_socket, intex_auto_port(), "AutoAction");
+    intex::bind_socket(&auto_socket, intex_auto_port(), "AutoAction");
 
     leftWindow.setWindowTitle("InTex Live Feed 0");
     rightWindow.setWindowTitle("InTex Live Feed 1");
