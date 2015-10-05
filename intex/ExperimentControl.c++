@@ -93,47 +93,6 @@ static float vna_temperature() {
   return static_cast<float>(tmp) / 10.0f;
 }
 
-static void build_telemetry(::capnp::MallocMessageBuilder &message,
-                            const bool nva_available) {
-  Telemetry::Builder telemetry = message.initRoot<Telemetry>();
-
-  auto cpu_temp = telemetry.initCpuTemperature();
-  cpu_temp.setTimestamp(system_clock::now().time_since_epoch().count());
-  try {
-    cpu_temp.initReading().setValue(cpu_temperature());
-  } catch (const std::runtime_error &e) {
-    cpu_temp.initError().setReason(e.what());
-  }
-
-  auto vna_temp = telemetry.initVnaTemperature();
-  vna_temp.setTimestamp(system_clock::now().time_since_epoch().count());
-  try {
-    if (nva_available)
-      throw std::runtime_error("NVA measurement running");
-    vna_temp.initReading().setValue(vna_temperature());
-  } catch (const std::runtime_error &e) {
-    vna_temp.initError().setReason(e.what());
-  }
-
-  try {
-#if 0
-    qDebug() << "InnerRing:"
-             << hw::TemperatureSensor::temperatureSensor().temperature(
-                    hw::TemperatureSensor::Sensor::InnerRing);
-    qDebug() << "OuterRing:"
-             << hw::TemperatureSensor::temperatureSensor().temperature(
-                    hw::TemperatureSensor::Sensor::OuterRing);
-    qDebug() << "Atmosphere:"
-             << hw::TemperatureSensor::temperatureSensor().temperature(
-                    hw::TemperatureSensor::Sensor::Atmosphere);
-#else
-// hw::ADS1248::sensor().selftest(1);
-#endif
-  } catch (const std::runtime_error &e) {
-    qCritical() << e.what();
-  }
-}
-
 static kj::Array<capnp::word> build_announce(const AutoAction action) {
   ::capnp::MallocMessageBuilder message;
   auto request = message.initRoot<AutoActionRequest>();
@@ -304,6 +263,46 @@ class ExperimentControl::Impl : public QObject {
     auto data = build_announce(action);
   }
 
+  void build_telemetry(::capnp::MallocMessageBuilder &message) {
+    Telemetry::Builder telemetry = message.initRoot<Telemetry>();
+
+    auto cpu_temp = telemetry.initCpuTemperature();
+    cpu_temp.setTimestamp(system_clock::now().time_since_epoch().count());
+    try {
+      cpu_temp.initReading().setValue(cpu_temperature());
+    } catch (const std::runtime_error &e) {
+      cpu_temp.initError().setReason(e.what());
+    }
+
+    auto vna_temp = telemetry.initVnaTemperature();
+    vna_temp.setTimestamp(system_clock::now().time_since_epoch().count());
+    try {
+      if (nva.state() != QProcess::ProcessState::NotRunning)
+        throw std::runtime_error("NVA measurement running");
+      vna_temp.initReading().setValue(vna_temperature());
+    } catch (const std::runtime_error &e) {
+      vna_temp.initError().setReason(e.what());
+    }
+
+    try {
+#if 0
+    qDebug() << "InnerRing:"
+             << hw::TemperatureSensor::temperatureSensor().temperature(
+                    hw::TemperatureSensor::Sensor::InnerRing);
+    qDebug() << "OuterRing:"
+             << hw::TemperatureSensor::temperatureSensor().temperature(
+                    hw::TemperatureSensor::Sensor::OuterRing);
+    qDebug() << "Atmosphere:"
+             << hw::TemperatureSensor::temperatureSensor().temperature(
+                    hw::TemperatureSensor::Sensor::Atmosphere);
+#else
+// hw::ADS1248::sensor().selftest(1);
+#endif
+    } catch (const std::runtime_error &e) {
+      qCritical() << e.what();
+    }
+  }
+
   void enableCameras() {
     QTime duration;
 
@@ -353,8 +352,7 @@ public:
     telemetry_timer.setSingleShot(false);
     connect(&telemetry_timer, &QTimer::timeout, [this] {
       ::capnp::MallocMessageBuilder message;
-      build_telemetry(message,
-                      nva.state() != QProcess::ProcessState::NotRunning);
+      build_telemetry(message);
       auto data = messageToFlatArray(message);
       auto chars = data.asChars();
       send_telemetry(chars);
