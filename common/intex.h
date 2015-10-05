@@ -5,6 +5,7 @@
 #include <QString>
 #include <QByteArray>
 #include <QVector>
+#include <QUdpSocket>
 
 #include <kj/debug.h>
 #include <kj/array.h>
@@ -34,6 +35,19 @@ static constexpr const char *to_string(const AutoAction action) {
     return "Deflate";
   }
 }
+
+class QByteArrayMessageReader : public capnp::MessageReader {
+  QByteArray &buffer;
+  QVector<kj::ArrayPtr<const ::capnp::word>> segments;
+
+public:
+  QByteArrayMessageReader(QByteArray &buffer_, capnp::ReaderOptions options =
+                                                   capnp::ReaderOptions());
+  kj::ArrayPtr<const capnp::word> getSegment(uint id) override;
+};
+
+void handle_datagram(QUdpSocket &socket,
+                     std::function<void(QByteArray &)> handler);
 }
 
 QDebug operator<<(QDebug dbg, const InTexHW hw);
@@ -50,14 +64,4 @@ static constexpr const char *intex_host() {
 }
 static constexpr uint16_t intex_control_port() { return 1234; }
 static constexpr uint16_t intex_auto_port() { return 32468; }
-
-class QByteArrayMessageReader : public capnp::MessageReader {
-  QByteArray &buffer;
-  QVector<kj::ArrayPtr<const ::capnp::word>> segments;
-
-public:
-  QByteArrayMessageReader(QByteArray &buffer_, capnp::ReaderOptions options =
-                                                   capnp::ReaderOptions());
-  kj::ArrayPtr<const capnp::word> getSegment(uint id) override;
-};
 

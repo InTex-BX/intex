@@ -134,26 +134,6 @@ QString storageLocation(const enum Subsystem subsys, unsigned int *last) {
   qDebug() << "Maximum number of files reached.";
   throw std::runtime_error("Maximum number of files reached.");
 }
-}
-
-QDebug operator<<(QDebug dbg, const InTexHW hw) {
-  switch (hw) {
-  case InTexHW::VALVE0:
-    return dbg << "Pressure tank valve";
-  case InTexHW::VALVE1:
-    return dbg << "Outlet valve";
-  case InTexHW::HEATER0:
-    return dbg << "Inner heater";
-  case InTexHW::HEATER1:
-    return dbg << "Outer heater";
-  case InTexHW::BURNWIRE:
-    return dbg << "Burnwire";
-  case InTexHW::MINIVNA:
-    return dbg << "MiniVNA";
-  case InTexHW::USBHUB:
-    return dbg << "USB Hub";
-  }
-}
 
 QByteArrayMessageReader::QByteArrayMessageReader(QByteArray &buffer_,
                                                  capnp::ReaderOptions options)
@@ -198,5 +178,46 @@ kj::ArrayPtr<const capnp::word> QByteArrayMessageReader::getSegment(uint id) {
     return segments.at(id_);
   } else {
     return nullptr;
+  }
+}
+
+void handle_datagram(QUdpSocket &socket,
+                     std::function<void(QByteArray &)> handler) {
+  for (; socket.hasPendingDatagrams();) {
+    auto size = socket.pendingDatagramSize();
+    if (size < 0) {
+      qDebug() << "No datagram ready.";
+      continue;
+    }
+
+    QByteArray buffer;
+    buffer.resize(static_cast<int>(size));
+    auto ret = socket.readDatagram(buffer.data(), buffer.size());
+    if (ret < 0) {
+      qCritical() << "Could not read datagram.";
+      return;
+    }
+
+    handler(buffer);
+  }
+}
+}
+
+QDebug operator<<(QDebug dbg, const InTexHW hw) {
+  switch (hw) {
+  case InTexHW::VALVE0:
+    return dbg << "Pressure tank valve";
+  case InTexHW::VALVE1:
+    return dbg << "Outlet valve";
+  case InTexHW::HEATER0:
+    return dbg << "Inner heater";
+  case InTexHW::HEATER1:
+    return dbg << "Outer heater";
+  case InTexHW::BURNWIRE:
+    return dbg << "Burnwire";
+  case InTexHW::MINIVNA:
+    return dbg << "MiniVNA";
+  case InTexHW::USBHUB:
+    return dbg << "USB Hub";
   }
 }

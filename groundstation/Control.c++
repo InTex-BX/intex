@@ -120,7 +120,7 @@ struct Control::Impl {
   }
 
   void handle_telemetry_datagram(QByteArray &buffer) {
-    auto reader = QByteArrayMessageReader(buffer);
+    auto reader = intex::QByteArrayMessageReader(buffer);
     auto telemetry = reader.getRoot<Telemetry>();
 
     auto cpu_temp = telemetry.getCpuTemperature();
@@ -141,31 +141,10 @@ struct Control::Impl {
   }
 
   void handle_auto_datagram(QByteArray &buffer) {
-    auto reader = QByteArrayMessageReader(buffer);
+    using namespace std::chrono;
+    auto reader = intex::QByteArrayMessageReader(buffer);
     auto auto_action = reader.getRoot<AutoActionRequest>();
 
-    qDebug() << "Request" << static_cast<uint32_t>(auto_action.getAction())
-             << "with timeout" << auto_action.getTimeout() << "s";
-  }
-
-  void handle_datagram(QUdpSocket &socket,
-                       void (Control::Impl::*handler)(QByteArray &)) {
-    for (; socket.hasPendingDatagrams();) {
-      auto size = socket.pendingDatagramSize();
-      if (size < 0) {
-        qDebug() << "No datagram ready.";
-      }
-
-      QByteArray buffer;
-      buffer.resize(static_cast<int>(size));
-      auto ret = socket.readDatagram(buffer.data(), buffer.size());
-      if (ret < 0) {
-        qCritical() << "Could not read datagram.";
-        return;
-      }
-
-      (this->*handler)(buffer);
-    }
   }
 
   Impl(QWidget *parent, QString host, const uint16_t control_port,
@@ -186,18 +165,21 @@ struct Control::Impl {
     qInstallMessageHandler(output);
 
     connect(&telemetry_socket, &QAbstractSocket::readyRead, [this] {
-      handle_datagram(telemetry_socket,
-                      &Control::Impl::handle_telemetry_datagram);
+      intex::handle_datagram(telemetry_socket, [this](auto &&buffer) {
+        handle_telemetry_datagram(buffer);
+      });
     });
     bind_socket(&telemetry_socket, 54431, "Telemetry");
 
     connect(&log_socket, &QAbstractSocket::readyRead, [this] {
-      handle_datagram(log_socket, &Control::Impl::handle_log_datagram);
+      intex::handle_datagram(
+          log_socket, [this](auto &&buffer) { handle_log_datagram(buffer); });
     });
     bind_socket(&log_socket, 4005, "Log");
 
     connect(&auto_socket, &QAbstractSocket::readyRead, [this] {
-      handle_datagram(auto_socket, &Control::Impl::handle_auto_datagram);
+      intex::handle_datagram(
+          auto_socket, [this](auto &&buffer) { handle_auto_datagram(buffer); });
     });
     bind_socket(&auto_socket, intex_auto_port(), "AutoAction");
 
