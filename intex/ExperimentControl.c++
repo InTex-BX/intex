@@ -204,6 +204,7 @@ class ExperimentControl::Impl : public QObject {
   QTimer timeout;
   int heartbeat_id;
   QUdpSocket telemetry_socket;
+  QUdpSocket announce_socket;
   QTimer telemetry_timer;
   QString telemetry_filename;
   QFile telemetry_file;
@@ -260,7 +261,31 @@ class ExperimentControl::Impl : public QObject {
   }
 
   void announceAction(const AutoAction action) {
-    auto data = build_announce(action);
+    if (announce_socket.state() == QAbstractSocket::ConnectedState) {
+      auto data = build_announce(action);
+      auto chars = data.asChars();
+      auto ret = announce_socket.write(chars.begin(),
+                                       static_cast<qint64>(chars.size()));
+
+      if (ret < 0) {
+        qCritical() << "Sending announce datagram failed:"
+                    << announce_socket.error() << "Reconnecting.";
+        announce_socket.connectToHost(host, intex_auto_port());
+      }
+    } else if (announce_socket.state() == QAbstractSocket::UnconnectedState) {
+      announce_socket.connectToHost(host, intex_auto_port());
+    }
+  }
+
+  void handle_auto_datagram(QByteArray &buffer) {
+    auto reader = intex::QByteArrayMessageReader(buffer);
+    auto reply = reader.getRoot<AutoActionReply>();
+
+    if (reply.isCancel()) {
+      qDebug() << "Action cancelled";
+    } else if (reply.isAccept()) {
+      qDebug() << "Action accepted";
+    }
   }
 
   void build_telemetry(::capnp::MallocMessageBuilder &message) {
@@ -370,6 +395,15 @@ public:
       qDebug() << "Could not allocate heartbeat timer. Automatic experiment "
                   "control disabled.";
     }
+
+    connect(&announce_socket, &QAbstractSocket::readyRead, [this] {
+      intex::handle_datagram(announce_socket,
+                             [this](auto &&buffer, QHostAddress &, quint16) {
+                               handle_auto_datagram(buffer);
+                             });
+    });
+    intex::bind_socket(&announce_socket, intex_auto_port(), "Telemetry");
+    announce_socket.connectToHost(host, intex_auto_port());
 
     enableCameras();
     source0 = std::make_unique<VideoStreamSourceControl>(
