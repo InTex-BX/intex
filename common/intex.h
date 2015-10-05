@@ -23,6 +23,17 @@ enum class Subsystem { Video0, Video1, Telemetry, Log };
 QString storageLocation(const enum Subsystem subsys, unsigned int *last =
     nullptr);
 QString deviceName(const enum Subsystem subsys);
+
+static constexpr const char *to_string(const AutoAction action) {
+  switch (action) {
+  case AutoAction::INFLATE:
+    return "Inflate";
+  case AutoAction::MEASURE:
+    return "Measure";
+  case AutoAction::DEFLATE:
+    return "Deflate";
+  }
+}
 }
 
 QDebug operator<<(QDebug dbg, const InTexHW hw);

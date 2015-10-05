@@ -134,9 +134,8 @@ static QGst::PipelinePtr make_pipeline(const enum intex::Subsystem subsys,
       pipeline << "Debug mode";
     else
       pipeline << error;
-    pipeline << "\"";
+    pipeline << "\" ! videoconvert name=video" << make_encode();
 #endif
-    pipeline << " ! videoconvert name=video" << make_encode();
   }
 
 #ifdef RTPBIN
