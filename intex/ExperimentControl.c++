@@ -458,6 +458,7 @@ public:
     setInnerHeater(On);
     setTankValve(Off);
     setOutletValve(Off);
+    intex::hw::Watchdog::watchdog();
     telemetry_file.open(QIODevice::WriteOnly);
     telemetry_timer.setInterval(duration_cast<milliseconds>(5s).count());
     telemetry_timer.setSingleShot(false);
