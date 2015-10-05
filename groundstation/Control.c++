@@ -199,7 +199,7 @@ struct Control::Impl {
     connect(&auto_socket, &QAbstractSocket::readyRead, [this] {
       handle_datagram(auto_socket, &Control::Impl::handle_auto_datagram);
     });
-    bind_socket(&auto_socket, 49543, "AutoAction");
+    bind_socket(&auto_socket, intex_auto_port(), "AutoAction");
 
     leftWindow.setWindowTitle("InTex Live Feed 0");
     rightWindow.setWindowTitle("InTex Live Feed 1");
