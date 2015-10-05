@@ -1,6 +1,7 @@
 #include <chrono>
 #include <atomic>
 #include <string>
+#include <functional>
 
 #include <cmath>
 
@@ -93,12 +94,13 @@ static float vna_temperature() {
   return static_cast<float>(tmp) / 10.0f;
 }
 
-static kj::Array<capnp::word> build_announce(const AutoAction action) {
+static kj::Array<capnp::word> build_announce(const AutoAction action,
+                                             const unsigned timeout) {
   ::capnp::MallocMessageBuilder message;
   auto request = message.initRoot<AutoActionRequest>();
 
   request.setAction(action);
-  request.setTimeout(30);
+  request.setTimeout(timeout);
 
   return messageToFlatArray(message);
 }
@@ -205,6 +207,8 @@ class ExperimentControl::Impl : public QObject {
   int heartbeat_id;
   QUdpSocket telemetry_socket;
   QUdpSocket announce_socket;
+  bool announce_reply_outstanding = false;
+  std::function<void(void)> auto_callback;
   QTimer telemetry_timer;
   QString telemetry_filename;
   QFile telemetry_file;
@@ -323,9 +327,33 @@ class ExperimentControl::Impl : public QObject {
     telemetry_file.flush();
   }
 
-  void announceAction(const AutoAction action) {
+  void handle_auto_timeout() {
+    if (announce_reply_outstanding) {
+      announce_reply_outstanding = false;
+      qDebug() << "Auto request timed out";
+      auto_callback();
+    }
+  }
+
+  void handle_auto_datagram(QByteArray &buffer) {
+    auto reader = intex::QByteArrayMessageReader(buffer);
+    auto reply = reader.getRoot<AutoActionReply>();
+
+    qDebug() << "Result:" << to_string(reply.getAction()) << reply.isAccept()
+             << reply.isCancel();
+    if (reply.isAccept()) {
+      handle_auto_timeout();
+    } else {
+      qDebug() << "Action cancelled";
+    }
+  }
+
+  void announceAction(const AutoAction action,
+                      const std::chrono::seconds announce_timeout,
+                      std::function<void(void)> ok_action) {
     if (announce_socket.state() == QAbstractSocket::ConnectedState) {
-      auto data = build_announce(action);
+      auto data = build_announce(
+          action, static_cast<unsigned>(announce_timeout.count()));
       auto chars = data.asChars();
       auto ret = announce_socket.write(chars.begin(),
                                        static_cast<qint64>(chars.size()));
@@ -338,17 +366,12 @@ class ExperimentControl::Impl : public QObject {
     } else if (announce_socket.state() == QAbstractSocket::UnconnectedState) {
       announce_socket.connectToHost(host, intex_auto_request_port());
     }
-  }
 
-  void handle_auto_datagram(QByteArray &buffer) {
-    auto reader = intex::QByteArrayMessageReader(buffer);
-    auto reply = reader.getRoot<AutoActionReply>();
-
-    if (reply.isCancel()) {
-      qDebug() << "Action cancelled";
-    } else if (reply.isAccept()) {
-      qDebug() << "Action accepted";
-    }
+    announce_reply_outstanding = true;
+    auto_callback = ok_action;
+    QTimer::singleShot(
+        static_cast<int>(duration_cast<milliseconds>(announce_timeout).count()),
+        [this] { handle_auto_timeout(); });
   }
 
   void build_telemetry(::capnp::MallocMessageBuilder &message) {
@@ -465,8 +488,9 @@ public:
                                handle_auto_datagram(buffer);
                              });
     });
-    intex::bind_socket(&announce_socket, intex_auto_port(), "Telemetry");
-    announce_socket.connectToHost(host, intex_auto_port());
+    intex::bind_socket(&announce_socket, intex_auto_reply_port(),
+                       "Announce Reply");
+    announce_socket.connectToHost(host, intex_auto_request_port());
 
     enableCameras();
     source0 = std::make_unique<VideoStreamSourceControl>(
