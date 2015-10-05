@@ -588,11 +588,15 @@ Control::Control(QString host, const uint16_t control_port, const bool debug,
   auto launchButton = new QPushButton("Launch");
   connect(launchButton, &QPushButton::clicked, [this] { d_->client.launch(); });
 
+  auto nvaButton = new QPushButton("NVA measurement");
+  connect(nvaButton, &QPushButton::clicked, [this] { d_->client.nva(); });
+
   auto flightWidget = new QFrame;
   flightWidget->setFrameShape(QFrame::StyledPanel);
   auto flightLayout = new QHBoxLayout(flightWidget);
 
   flightLayout->addWidget(launchButton);
+  flightLayout->addWidget(nvaButton);
 
   centralLayout->addWidget(controlWidget);
   centralLayout->addWidget(launchButton);

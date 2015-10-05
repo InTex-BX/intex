@@ -120,5 +120,12 @@ void IntexRpcClient::launch() {
   });
 }
 
+void IntexRpcClient::nva() {
+  auto request = intex.nvaRequest();
+  request.send().detach([this](auto &&exception) {
+    qCritical() << exception.getDescription().cStr();
+  });
+}
+
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
 #include "moc_IntexRpcClient.cpp"

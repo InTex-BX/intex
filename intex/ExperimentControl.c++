@@ -335,32 +335,6 @@ class ExperimentControl::Impl : public QObject {
     }
   }
 
-  void start_measurment() {
-    if (nva.state() != QProcess::ProcessState::NotRunning) {
-      qCritical() << "VNA measurement already running";
-      return;
-    }
-    nva.setProcessChannelMode(QProcess::MergedChannels);
-    nva.setProgram("java");
-    QStringList args;
-    args << "-Dfstart=430000000";
-    args << "-Dfstop=440000000";
-    args << "-Dfsteps=10000";
-    args << "-Dcalfile=REFL_miniVNA-pro-2015-10-04.cal";
-    args << "-Dscanmode=REFL";
-    args << "-Dexports=xls";
-    args << "-jar /home/intex/vnaJ-hl.3.1.5.jar";
-
-    connect(
-        &nva, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(
-                  &QProcess::finished),
-        [this](const int exit_code, const QProcess::ExitStatus exit_status) {
-          qDebug() << "Measurement done" << exit_code << exit_status << ":";
-          qDebug() << nva.readAllStandardOutput();
-        });
-    nva.start();
-  }
-
 public:
   Impl(QString host_, quint16 port_)
       : host(std::move(host_)), port(port_), flight_state(loadState()),
@@ -453,6 +427,32 @@ public:
   void setBitrate(const InTexFeed feed, const uint64_t bitrate) {
     dispatch_video_controls(
         feed, [bitrate](auto &&source) { source->setBitrate(bitrate); });
+  }
+
+  void start_measurement() {
+    if (nva.state() != QProcess::ProcessState::NotRunning) {
+      qCritical() << "VNA measurement already running";
+      return;
+    }
+    nva.setProcessChannelMode(QProcess::MergedChannels);
+    nva.setProgram("java");
+    QStringList args;
+    args << "-Dfstart=370000000";
+    args << "-Dfstop=500000000";
+    args << "-Dfsteps=261";
+    args << "-Dcalfile=REFL_miniVNA-pro-2015-10-04.cal";
+    args << "-Dscanmode=REFL";
+    args << "-Dexports=xls";
+    args << "-jar /home/intex/vnaJ-hl.3.1.5.jar";
+
+    connect(
+        &nva, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(
+                  &QProcess::finished),
+        [this](const int exit_code, const QProcess::ExitStatus exit_status) {
+          qDebug() << "Measurement done" << exit_code << exit_status << ":";
+          qDebug() << nva.readAllStandardOutput();
+        });
+    nva.start();
   }
 };
 
@@ -590,7 +590,7 @@ void ExperimentControl::setBitrate(const InTexFeed feed,
   d_->setBitrate(feed, bitrate);
 }
 
-void ExperimentControl::measureAntenna(){};
+void ExperimentControl::measureAntenna() { d_->start_measurement(); };
 }
 
 #include "ExperimentControl.moc"

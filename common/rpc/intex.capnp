@@ -90,4 +90,5 @@ interface Command {
   stop @5 (feed: InTexFeed);
   next @6 (feed: InTexFeed);
   launch @7 ();
+  nva @8 ();
 }

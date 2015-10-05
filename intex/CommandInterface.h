@@ -44,6 +44,7 @@ public:
   kj::Promise<void> stop(StopContext context) override;
   kj::Promise<void> next(NextContext context) override;
   kj::Promise<void> launch(LaunchContext context) override;
+  kj::Promise<void> nva(NvaContext context) override;
 };
 
 extern InTexServer *server_instance;

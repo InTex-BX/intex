@@ -30,6 +30,7 @@ public Q_SLOTS:
   void stop(const InTexFeed feed);
   void next(const InTexFeed feed);
   void launch();
+  void nva();
 
 private Q_SLOTS:
   void onConnect();

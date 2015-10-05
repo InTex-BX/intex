@@ -126,6 +126,11 @@ kj::Promise<void> InTexServer::launch(LaunchContext) {
   return kj::READY_NOW;
 }
 
+kj::Promise<void> InTexServer::nva(NvaContext) {
+  control.measureAntenna();
+  return kj::READY_NOW;
+}
+
 void InTexServer::setupLogStream(const uint16_t port) {
   syslog_socket.connectToHost(client.c_str(), port, QIODevice::WriteOnly,
                               QAbstractSocket::IPv4Protocol);
