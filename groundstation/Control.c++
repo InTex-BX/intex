@@ -111,11 +111,7 @@ struct Control::Impl {
 
   void handle_log_datagram(QByteArray &buffer) {
     QTextStream is(&buffer);
-    QString time;
-    QString cat;
-    QString msg;
-    is >> time >> cat >> msg;
-    qDebug() << time << cat << msg;
+    qDebug() << is.readLine();
   }
 
   void handle_telemetry_datagram(QByteArray &buffer) {
