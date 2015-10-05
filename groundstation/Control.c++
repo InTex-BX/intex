@@ -146,6 +146,7 @@ struct Control::Impl {
         switchWindows_(tr("Ctrl+Shift+X"), parent, SLOT(switchWindows())),
         showNormal_(tr("Esc"), parent, SLOT(showNormal())),
         client(host.toStdString(), control_port) {
+    connect(&adapter, &intex::LogAdapter::log, intexWidget, &IntexWidget::log);
     qInstallMessageHandler(output);
 
     connect(&telemetry_socket, &QAbstractSocket::readyRead, [this] {
