@@ -154,3 +154,49 @@ QDebug operator<<(QDebug dbg, const InTexHW hw) {
     return dbg << "USB Hub";
   }
 }
+
+QByteArrayMessageReader::QByteArrayMessageReader(QByteArray &buffer_,
+                                                 capnp::ReaderOptions options)
+    : capnp::MessageReader(options), buffer(buffer_) {
+  auto buffersize = static_cast<size_t>(buffer.size());
+
+  if (buffersize < sizeof(capnp::word)) {
+    /* empty message */
+    return;
+  }
+
+  const capnp::_::WireValue<uint32_t> *table =
+      reinterpret_cast<const capnp::_::WireValue<uint32_t> *>(buffer.data());
+
+  uint segmentCount = table[0].get() + 1;
+  size_t offset = segmentCount / 2u + 1u;
+
+  KJ_REQUIRE(buffersize >= offset,
+             "Message ends prematurely in segment table.") {
+    return;
+  }
+
+  for (uint segment = 0; segment < segmentCount; ++segment) {
+    uint segmentSize = table[segment + 1].get();
+
+    KJ_REQUIRE(buffersize >= offset + segmentSize,
+               "Message ends prematurely in first segment.") {
+      return;
+    }
+
+    segments.append(kj::ArrayPtr<const capnp::word>(
+        reinterpret_cast<const capnp::word *>(buffer.data()) + offset,
+        offset + segmentSize));
+
+    offset += segmentSize;
+  }
+}
+
+kj::ArrayPtr<const capnp::word> QByteArrayMessageReader::getSegment(uint id) {
+  auto id_ = static_cast<int>(id);
+  if (id_ < segments.size()) {
+    return segments.at(id_);
+  } else {
+    return nullptr;
+  }
+}

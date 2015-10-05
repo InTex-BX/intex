@@ -3,6 +3,14 @@
 #include <functional>
 
 #include <QString>
+#include <QByteArray>
+#include <QVector>
+
+#include <kj/debug.h>
+#include <kj/array.h>
+#include <capnp/serialize.h>
+#include <capnp/common.h>
+#include <capnp/endian.h>
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wweak-vtables"
@@ -30,4 +38,14 @@ static constexpr const char *intex_host() {
 #endif
 }
 static constexpr uint16_t intex_control_port() { return 1234; }
+
+class QByteArrayMessageReader : public capnp::MessageReader {
+  QByteArray &buffer;
+  QVector<kj::ArrayPtr<const ::capnp::word>> segments;
+
+public:
+  QByteArrayMessageReader(QByteArray &buffer_, capnp::ReaderOptions options =
+                                                   capnp::ReaderOptions());
+  kj::ArrayPtr<const capnp::word> getSegment(uint id) override;
+};
 

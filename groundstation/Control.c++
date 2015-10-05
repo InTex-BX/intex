@@ -24,12 +24,6 @@
 #include <iostream>
 #include <chrono>
 
-#include <kj/debug.h>
-#include <kj/array.h>
-#include <capnp/serialize.h>
-#include <capnp/common.h>
-#include <capnp/endian.h>
-
 #include "Control.h"
 
 #include "qgst.h"
@@ -42,68 +36,23 @@
 #include "intex.h"
 
 static IntexWidget *log_instance = nullptr;
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+static intex::LogAdapter adapter;
+#pragma clang diagnostic pop
 static void output(QtMsgType type, const QMessageLogContext &,
                    const QString &msg) {
+
+#if 0
   if (log_instance != nullptr) {
     log_instance->log(msg);
   }
+#endif
+  adapter << msg;
   std::cerr << msg.toStdString() << std::endl;
 }
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wweak-vtables"
-class QByteArrayMessageReader : public capnp::MessageReader {
-  QByteArray &buffer;
-  QVector<kj::ArrayPtr<const ::capnp::word>> segments;
-
-public:
-  QByteArrayMessageReader(QByteArray &buffer_,
-                          capnp::ReaderOptions options = capnp::ReaderOptions())
-      : capnp::MessageReader(options), buffer(buffer_) {
-    auto buffersize = static_cast<size_t>(buffer.size());
-
-    if (buffersize < sizeof(capnp::word)) {
-      /* empty message */
-      return;
-    }
-
-    const capnp::_::WireValue<uint32_t> *table =
-        reinterpret_cast<const capnp::_::WireValue<uint32_t> *>(buffer.data());
-
-    uint segmentCount = table[0].get() + 1;
-    size_t offset = segmentCount / 2u + 1u;
-
-    KJ_REQUIRE(buffersize >= offset,
-               "Message ends prematurely in segment table.") {
-      return;
-    }
-
-    for (uint segment = 0; segment < segmentCount; ++segment) {
-      uint segmentSize = table[segment + 1].get();
-
-      KJ_REQUIRE(buffersize >= offset + segmentSize,
-                 "Message ends prematurely in first segment.") {
-        return;
-      }
-
-      segments.append(kj::ArrayPtr<const capnp::word>(
-          reinterpret_cast<const capnp::word *>(buffer.data()) + offset,
-          offset + segmentSize));
-
-      offset += segmentSize;
-    }
-  }
-
-  kj::ArrayPtr<const capnp::word> getSegment(uint id) override {
-    auto id_ = static_cast<int>(id);
-    if (id_ < segments.size()) {
-      return segments.at(id_);
-    } else {
-      return nullptr;
-    }
-  }
-};
-#pragma clang diagnostic pop
 
 static void gpio_callback(QAction *menuItem, const InTexHW hw,
                           IntexRpcClient &client, const bool on) {
