@@ -187,8 +187,9 @@ kj::ArrayPtr<const capnp::word> QByteArrayMessageReader::getSegment(uint id) {
   }
 }
 
-void handle_datagram(QUdpSocket &socket,
-                     std::function<void(QByteArray &)> handler) {
+void handle_datagram(
+    QUdpSocket &socket,
+    std::function<void(QByteArray &, QHostAddress &, quint16)> handler) {
   for (; socket.hasPendingDatagrams();) {
     auto size = socket.pendingDatagramSize();
     if (size < 0) {
@@ -197,14 +198,17 @@ void handle_datagram(QUdpSocket &socket,
     }
 
     QByteArray buffer;
+    QHostAddress sender;
+    quint16 port;
     buffer.resize(static_cast<int>(size));
-    auto ret = socket.readDatagram(buffer.data(), buffer.size());
+    auto ret =
+        socket.readDatagram(buffer.data(), buffer.size(), &sender, &port);
     if (ret < 0) {
       qCritical() << "Could not read datagram.";
       return;
     }
 
-    handler(buffer);
+    handler(buffer, sender, port);
   }
 }
 

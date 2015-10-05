@@ -150,21 +150,26 @@ struct Control::Impl {
     qInstallMessageHandler(output);
 
     connect(&telemetry_socket, &QAbstractSocket::readyRead, [this] {
-      intex::handle_datagram(telemetry_socket, [this](auto &&buffer) {
-        handle_telemetry_datagram(buffer);
-      });
+      intex::handle_datagram(telemetry_socket,
+                             [this](auto &&buffer, QHostAddress &, quint16) {
+                               handle_telemetry_datagram(buffer);
+                             });
     });
     intex::bind_socket(&telemetry_socket, 54431, "Telemetry");
 
     connect(&log_socket, &QAbstractSocket::readyRead, [this] {
-      intex::handle_datagram(
-          log_socket, [this](auto &&buffer) { handle_log_datagram(buffer); });
+      intex::handle_datagram(log_socket,
+                             [this](auto &&buffer, QHostAddress &, quint16) {
+                               handle_log_datagram(buffer);
+                             });
     });
     intex::bind_socket(&log_socket, 4005, "Log");
 
     connect(&auto_socket, &QAbstractSocket::readyRead, [this] {
-      intex::handle_datagram(
-          auto_socket, [this](auto &&buffer) { handle_auto_datagram(buffer); });
+      intex::handle_datagram(auto_socket,
+                             [this](auto &&buffer, QHostAddress &, quint16) {
+                               handle_auto_datagram(buffer);
+                             });
     });
     intex::bind_socket(&auto_socket, intex_auto_request_port(), "AutoAction");
 
