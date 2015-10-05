@@ -133,7 +133,8 @@ static const char h264caps[] =
 
 static QGst::PipelinePtr makePipeline(const bool debug, const uint16_t port,
                                       const QString &widgetName,
-                                      const QString &windowName) {
+                                      const QString &windowName,
+                                      const QString &loc) {
   QString pipeline;
   QTextStream s(&pipeline);
 
@@ -157,6 +158,17 @@ static QGst::PipelinePtr makePipeline(const bool debug, const uint16_t port,
     << " ! qt5glvideosink name=" << widgetName << " force-aspect-ratio=true "
     << " raw. ! queue"
     << " ! qt5glvideosink name=" << windowName << " force-aspect-ratio=true ";
+  s << " raw. ! output-selector name=videoselector"
+    << " pad-negotiation-mode=active";
+  s << " ! fakesink name=videofakesink sync=false async=false";
+#if 0
+  s << " videoselector. ! splitmuxsink name=videomux"
+    << " max-byte-size=0 max-time-size=0"
+    << " location=/tmp/fallback-video-" << port << "%05d.mp4";
+#else
+  s << " videoselector. ! h264parse ! mpegtsmux";
+  s << " ! filesink sync=false async=false location=" << loc;
+#endif
 
   qDebug() << pipeline;
 
@@ -212,13 +224,12 @@ static auto make_audio_pipeline(const uint16_t port1, const uint16_t port2) {
   return QGst::Parse::launch(pipeline).dynamicCast<QGst::Pipeline>();
 }
 
-VideoStreamControl::VideoStreamControl(VideoWidget &leftWidget,
-                                       VideoWidget &rightWidget,
-                                       QGst::Ui::VideoWidget &leftWindow,
-                                       QGst::Ui::VideoWidget &rightWindow,
-                                       const bool debug)
-    : pipeline0(makePipeline(debug, 5000, "lwidget", "lwindow")),
-      pipeline1(makePipeline(debug, 5010, "rwidget", "rwindow")),
+VideoStreamControl::VideoStreamControl(
+    VideoWidget &leftWidget, VideoWidget &rightWidget,
+    QGst::Ui::VideoWidget &leftWindow, QGst::Ui::VideoWidget &rightWindow,
+    const QString &leftLocation, const QString &rightLocation, const bool debug)
+    : pipeline0(makePipeline(debug, 5000, "lwidget", "lwindow", leftLocation)),
+      pipeline1(makePipeline(debug, 5010, "rwidget", "rwindow", rightLocation)),
       audio(debug ? QGst::PipelinePtr{} : make_audio_pipeline(5000, 5010)),
       widgetSwitcher(std::make_unique<SinkSwitcher>(pipeline0, pipeline1,
                                                     "lwidget", "rwidget")),

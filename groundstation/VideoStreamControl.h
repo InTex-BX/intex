@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include <QString>
+
 #include "qgst.h"
 #include "qgst_videowidget.h"
 
@@ -34,7 +36,8 @@ private:
 public:
   VideoStreamControl(VideoWidget &leftWidget, VideoWidget &rightWidget,
                      QGst::Ui::VideoWidget &leftWindow,
-                     QGst::Ui::VideoWidget &rightWindow, const bool debug);
+                     QGst::Ui::VideoWidget &rightWindow, const QString &leftLoc,
+                     const QString &rightLoc, const bool debug);
   ~VideoStreamControl();
 
   void switchWidgets();
