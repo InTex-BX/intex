@@ -213,10 +213,73 @@ class ExperimentControl::Impl : public QObject {
   std::unique_ptr<VideoStreamSourceControl> source0;
   std::unique_ptr<VideoStreamSourceControl> source1;
 
-  static enum state loadState() { return state::preflight; }
+  static bool nvramFile(QFile &file) {
+#ifdef BUILD_ON_RASBERRY
+    QDir nvram;
+    return false;
+#else
+    QDir nvram("/Volumes/Intex");
+
+    if (!nvram.exists())
+      return false;
+
+    file.setFileName(nvram.filePath("nvram"));
+    if (!file.open(QIODevice::ReadWrite))
+      return false;
+#endif
+    return true;
+  }
+
+  static enum state loadState() {
+    QFile file;
+    if (!nvramFile(file))
+      return state::preflight;
+
+    auto buf = file.readAll();
+    intex::QByteArrayMessageReader reader(buf);
+    auto s = reader.getRoot<State>();
+
+    switch (s.getState()) {
+    case static_cast<uint8_t>(state::preflight):
+      return state::preflight;
+    case static_cast<uint8_t>(state::ascending):
+      return state::ascending;
+    case static_cast<uint8_t>(state::floating):
+      return state::floating;
+    case static_cast<uint8_t>(state::measuring1):
+      return state::measuring1;
+    case static_cast<uint8_t>(state::burnwire):
+      return state::burnwire;
+    case static_cast<uint8_t>(state::inflating):
+      return state::inflating;
+    case static_cast<uint8_t>(state::measuring2):
+      return state::measuring2;
+    case static_cast<uint8_t>(state::curing):
+      return state::curing;
+    case static_cast<uint8_t>(state::equalizing):
+      return state::equalizing;
+    case static_cast<uint8_t>(state::measuring3):
+      return state::measuring3;
+    case static_cast<uint8_t>(state::descending):
+      return state::descending;
+    }
+    return state::preflight;
+  }
+
   void saveState(const enum state state) {
-    /* save state and time of state finish, so that on re-start a timer can be
-     * set appropriately */
+    /* save state and time of state finish, so that on re-start a timer can
+     * be set appropriately */
+    ::capnp::MallocMessageBuilder message;
+    auto save = message.initRoot<State>();
+
+    save.setState(static_cast<uint8_t>(state));
+    auto flat = messageToFlatArray(message);
+    auto chars = flat.asChars();
+
+    QFile file;
+    if (!nvramFile(file))
+      return;
+    file.write(chars.begin(), static_cast<qint64>(chars.size()));
   }
 
   void timerEvent(QTimerEvent *event) Q_DECL_OVERRIDE {

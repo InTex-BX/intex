@@ -6,6 +6,10 @@
 
 using Cxx = import "/capnp/c++.capnp";
 
+struct State {
+  state @0 : UInt8;
+}
+
 struct Exception {
   reason @0 :Text;
 }
