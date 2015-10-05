@@ -138,6 +138,7 @@ struct Control::Impl {
   void handle_auto_datagram(QByteArray &buffer, QHostAddress &host,
                             quint16 port) {
     using namespace std::chrono;
+    using namespace std::literals::chrono_literals;
     auto reader = intex::QByteArrayMessageReader(buffer);
     auto auto_action = reader.getRoot<AutoActionRequest>();
     const auto action = auto_action.getAction();
