@@ -18,7 +18,7 @@ class SinkSwitcher {
 
   std::pair<GstPad *, gulong> firstProbe;
   std::mutex mutex;
-  
+
   std::atomic_flag switching{false};
   bool first;
 
@@ -122,7 +122,7 @@ public:
 static const char caps[] =
     "application/x-rtp, media=(string)video, clock-rate=(int)90000, "
     "encoding-name=(string)RAW, sampling=(string)YCbCr-4:2:0, "
-    "depth=(string)8, width=(string)360, height=(string)240, "
+    "depth=(string)8, width=(string)640, height=(string)360, "
     "colorimetry=(string)BT601-5, payload=(int)96, ssrc=(uint)4055103255, "
     "timestamp-offset=(uint)2574552406, seqnum-offset=(uint)23268";
 
