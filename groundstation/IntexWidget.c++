@@ -615,13 +615,13 @@ IntexWidget::IntexWidget(QWidget *parent)
 IntexWidget::~IntexWidget() = default;
 
 void IntexWidget::setTankPressure(const double pressure) {
-  d->tankPressureLabel->setText(QString("%1 mBar").arg(pressure));
+  d->tankPressureLabel->setText(QString("%1 mBar").arg(pressure * 1000));
 }
 void IntexWidget::setAtmosphericPressure(const double pressure) {
-  d->atmospherePressureLabel->setText(QString("%1 mBar").arg(pressure));
+  d->atmospherePressureLabel->setText(QString("%1 mBar").arg(pressure * 1000));
 }
 void IntexWidget::setAntennaPressure(const double pressure) {
-  d->antennaPressureLabel->setText(QString("%1 mBar").arg(pressure));
+  d->antennaPressureLabel->setText(QString("%1 mBar").arg(pressure * 1000));
 }
 
 void IntexWidget::setConnected(bool connected) {
