@@ -160,12 +160,12 @@ static QGst::PipelinePtr make_pipeline(const enum intex::Subsystem subsys,
              << " ! queue name=audioqueue";
     pipeline << " ! output-selector name=audio-selector "
                 "pad-negotiation-mode=active";
-    pipeline << " ! fakesink name=audiofakesink sync=false async=false";
-    pipeline << " audio-selector.";
-    pipeline << " ! splitmuxsink name=audiomux"
+    pipeline << " ! splitmuxsink name=audiomux muxer=mpegtsmux"
              << " max-size-time=0 max-size-bytes=0 sync=false async=false"
-             << " location=/media/usb-raid/video/fallback-audio" << port
+             << " location=/media/usb-raid/audio/fallback-audio" << port
              << "%05d.mp4";
+    pipeline << " audio-selector.";
+    pipeline << " ! fakesink name=audiofakesink sync=false async=false";
 
     /* stream */
     pipeline << " camaudio.";
@@ -257,10 +257,10 @@ public:
         videofakesink(pipeline->getElementByName("videofakesink")),
         audiofakesink(pipeline->getElementByName("audiofakesink")),
         audiofakesinkpad(
-            audioselector ? check_nonnull(audioselector->getStaticPad("src_0"))
+            audioselector ? check_nonnull(audioselector->getStaticPad("src_1"))
                           : QGst::PadPtr{}),
         audiofilesinkpad(
-            audioselector ? check_nonnull(audioselector->getStaticPad("src_1"))
+            audioselector ? check_nonnull(audioselector->getStaticPad("src_0"))
                           : QGst::PadPtr{}) {
     auto src = pipeline->getElementByName("cam");
     if (src) {
