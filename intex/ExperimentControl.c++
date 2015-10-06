@@ -94,6 +94,38 @@ static float vna_temperature() {
   return static_cast<float>(tmp) / 10.0f;
 }
 
+static double hub_temperature() {
+  QRegularExpression temp_pattern("t=(\\d+)");
+  QDir sysfs("/sys/bus/w1/devices");
+  for (const auto &entry :
+       sysfs.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::System)) {
+    qDebug() << "W1 slave:" << entry;
+    if (!sysfs.cd(entry)) {
+      qCritical() << "Could not enter directory" << entry;
+      continue;
+    }
+
+    QFile data(sysfs.absoluteFilePath("w1_slave"));
+    if (!data.open(QIODevice::ReadOnly)) {
+      qCritical() << "Could not open file" << data.fileName()
+                  << "for reading";
+      continue;
+    }
+
+    for (; !data.atEnd();) {
+      const QString line{data.readLine()};
+      auto match = temp_pattern.match(line);
+      if (match.hasMatch()) {
+        QString temp = match.captured(match.lastCapturedIndex());
+        return temp.toDouble() / 1000.0;
+      }
+    }
+    sysfs.cdUp();
+  }
+
+  throw std::runtime_error("DS18S20 not found.");
+}
+
 static kj::Array<capnp::word> build_announce(const AutoAction action,
                                              const unsigned timeout) {
   ::capnp::MallocMessageBuilder message;
@@ -393,6 +425,14 @@ class ExperimentControl::Impl : public QObject {
       vna_temp.initReading().setValue(vna_temperature());
     } catch (const std::runtime_error &e) {
       vna_temp.initError().setReason(e.what());
+    }
+
+    auto hub_temp = telemetry.initBoxTemperature();
+    hub_temp.setTimestamp(system_clock::now().time_since_epoch().count());
+    try {
+      hub_temp.initReading().setValue(hub_temperature());
+    } catch (const std::runtime_error &e) {
+      hub_temp.initError().setReason(e.what());
     }
 
     try {
