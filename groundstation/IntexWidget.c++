@@ -523,14 +523,19 @@ struct IntexWidget::Impl {
   QLabel *tankPressureLabel;
   QLabel *antennaPressureLabel;
   QLabel *atmospherePressureLabel;
-  QLabel *antennaTemperatureLabel;
+  QLabel *antennaInnerTemperatureLabel;
+  QLabel *antennaOuterTemperatureLabel;
+  QLabel *atmosphereTemperatureLabel;
 
   Impl(QWidget *parent = nullptr)
       : log(new QPlainTextEdit(parent)), valve1(new ElectricValve(parent)),
         valve2(new ElectricValve(parent)),
         tankPressureLabel(new QLabel("8.000 mBar")),
         antennaPressureLabel(new QLabel("255 mBar")),
-        atmospherePressureLabel(new QLabel("42 mBar")) {
+        atmospherePressureLabel(new QLabel("42 mBar")),
+        antennaInnerTemperatureLabel(new QLabel("37 °C")),
+        antennaOuterTemperatureLabel(new QLabel("35 °C")),
+        atmosphereTemperatureLabel(new QLabel("-20 °C")) {
     log->setReadOnly(true);
     log->setCenterOnScroll(true);
   }
@@ -577,7 +582,10 @@ IntexWidget::IntexWidget(QWidget *parent)
   auto externalInfoLayout = new QFormLayout(externalInfo);
   externalInfoLayout->addRow("Pressure:", d->atmospherePressureLabel);
   externalInfoLayout->addRow("Pressure (Ant):", d->antennaPressureLabel);
-  externalInfoLayout->addRow("Temperature:", new QLabel("-47 °C"));
+  externalInfoLayout->addRow("Temperature 1:", d->antennaInnerTemperatureLabel);
+  externalInfoLayout->addRow("Temperature 2:", d->antennaOuterTemperatureLabel);
+  externalInfoLayout->addRow("Temperature (Atmosphere):",
+                             d->atmosphereTemperatureLabel);
 
   layout->addWidget(tank, 0, 0);
   layout->addWidget(internalInfo, 0, 1);
