@@ -13,6 +13,10 @@
 #include <cerrno>
 #include <cstring>
 
+#include <unistd.h>
+#include <assert.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
 #ifdef BUILD_ON_RASPBERRY
 #include <linux/types.h>
 extern "C" {
@@ -89,6 +93,13 @@ static constexpr gpio mini_vna{20, "Mini VNA Supply", gpio::direction::out,
                                false};
 static constexpr gpio usb_hub{24, "Hub supply", gpio::direction::out, false};
 
+static constexpr gpio pressure_atmospheric_cs{4, "Atmospheric Pressure CS",
+                                              gpio::direction::out, true};
+static constexpr gpio pressure_antenna_cs{17, "Tank Pressure CS",
+                                          gpio::direction::out, true};
+static constexpr gpio pressure_tank_cs{27, "Antenna pressure CS",
+                                       gpio::direction::out, true};
+
 struct spi {
   uint32_t speed;           /*bits per second*/
   const char *const device; /*device file*/
@@ -161,6 +172,46 @@ static constexpr spi ads1248{150000,    "/dev/spidev0.0",
                              false,     false,
                              false,     true,
                              ads1248_cs};
+
+static constexpr spi pressure_atmospheric{7629,
+                                          "/dev/spidev0.0",
+                                          "Atmospheric Pressure Sensor",
+                                          8,
+                                          100,
+                                          false,
+                                          true,
+                                          false,
+                                          false,
+                                          false,
+                                          false,
+                                          true,
+                                          pressure_atmospheric_cs};
+static constexpr spi pressure_antenna{7629,
+                                      "/dev/spidev0.0",
+                                      "Antenna Pressure Sensor",
+                                      8,
+                                      100,
+                                      false,
+                                      true,
+                                      false,
+                                      false,
+                                      false,
+                                      false,
+                                      true,
+                                      pressure_antenna_cs};
+static constexpr spi pressure_tank{7629,
+                                   "/dev/spidev0.0",
+                                   "Tank Pressure Sensor",
+                                   8,
+                                   100,
+                                   false,
+                                   true,
+                                   false,
+                                   false,
+                                   false,
+                                   false,
+                                   true,
+                                   pressure_tank_cs};
 }
 
 [[noreturn]] static void throw_errno(std::string what) {
@@ -685,6 +736,240 @@ USBHub &USBHub::usbHub() {
 }
 #pragma clang diagnostic pop
 
+class spi {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+  static spi spidev00;
+#pragma clang diagnostic pop
+
+  int fd = -1;
+
+  spi(const char *device) {
+    fd = open(device, O_RDWR);
+    if (fd < 0) {
+      try {
+        throw_errno("Could not open SPI device");
+      } catch (const std::runtime_error &e) {
+        qCritical() << e.what();
+      }
+
+      qDebug() << "Setting up SPI device" << device << "failed";
+      return;
+    }
+
+    qDebug() << "Set up SPI device" << device;
+  }
+
+  ~spi() {
+    if (fd >= 0)
+      close(fd);
+  }
+
+public:
+  static spi &bus(unsigned bus) {
+    if (bus == 0)
+      return spidev00;
+
+    throw std::runtime_error("Invalid SPI bus " + std::to_string(bus));
+  }
+
+  void configure(const config::spi &config) {
+    if (fd < 0) {
+      return;
+    }
+#ifdef BUILD_ON_RASPBERRY
+#ifdef SPIDEBUG
+    qDebug() << config;
+#endif
+    int ret;
+
+    uint32_t mode = config.mode();
+    ret = ioctl(fd, SPI_IOC_WR_MODE32, &mode);
+    if (ret == -1) {
+      throw_errno("Could not set SPI mode");
+    }
+
+    uint32_t mode_;
+    ret = ioctl(fd, SPI_IOC_RD_MODE32, &mode_);
+    if (ret == -1)
+      throw_errno("Could not get SPI mode");
+
+#ifdef SPIDEBUG
+    qDebug() << "Read back SPI config:" << QString::number(mode, 16);
+#endif
+    assert(mode == mode_);
+
+    ret = ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &config.bpw);
+    if (ret == -1)
+      throw_errno("Could not set SPI bits per word");
+
+    uint8_t bpw;
+    ret = ioctl(fd, SPI_IOC_RD_BITS_PER_WORD, &bpw);
+    if (ret == -1)
+      throw_errno("Could not get SPI bits per word");
+
+#ifdef SPIDEBUG
+    qDebug() << "Read back SPI BPW: " << bpw;
+#endif
+    assert(bpw == config.bpw);
+
+    /* max speed Hz */
+    ret = ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &config.speed);
+    if (ret == -1)
+      throw_errno("Could not set SPI speed");
+
+    uint32_t speed;
+    ret = ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &speed);
+    if (ret == -1)
+      throw_errno("Could not get SPI speed");
+
+#ifdef SPIDEBUG
+    qDebug() << "Set SPI speed from" << config.name << "to" << speed;
+#endif
+#endif
+  }
+
+  /* Perform one transfer, deasserting CS */
+  void transfer(QByteArray tx, QByteArray &rx, const config::spi &config,
+                GPIO &cs_pin) {
+#ifdef BUILD_ON_RASPBERRY
+    int ret;
+
+    rx.resize(static_cast<int>(tx.size()));
+
+    struct spi_ioc_transfer tr;
+    tr.tx_buf = reinterpret_cast<uint64_t>(tx.constData());
+    tr.rx_buf = reinterpret_cast<uint64_t>(rx.data());
+    tr.len = static_cast<uint32_t>(tx.size());
+    tr.delay_usecs = config.delay;
+    tr.speed_hz = config.speed;
+    tr.bits_per_word = config.bpw;
+
+    if (config.no_cs) {
+      cs_pin.set(false);
+    } else {
+      /* one transfer shall be completed with a deasserted CS */
+      tr.cs_change = 1;
+    }
+
+    /* one transfer transfers without a CS deassert */
+    tr.tx_nbits = tr.rx_nbits = config.bpw;
+
+    if (config.no_cs) {
+      cs_pin.set(true);
+      std::this_thread::sleep_for(2ms);
+    }
+
+    ret = ioctl(fd, SPI_IOC_MESSAGE(1), &tr);
+    if (ret < 1)
+      throw_errno("Could not transfer SPI data");
+
+    if (config.no_cs)
+      cs_pin.set(false);
+
+    qDebug() << "TX:" << tx;
+    qDebug() << "RX:" << rx;
+#endif
+  }
+
+  void transfer(uint8_t *tx, uint8_t *rx, uint32_t len,
+                const config::spi &config, GPIO &cs_pin) {
+
+#ifdef BUILD_ON_RASPBERRY
+    int ret;
+
+    struct spi_ioc_transfer tr;
+    tr.tx_buf = reinterpret_cast<uint64_t>(tx);
+    tr.rx_buf = reinterpret_cast<uint64_t>(rx);
+    tr.len = static_cast<uint32_t>(len);
+    tr.delay_usecs = config.delay;
+    tr.speed_hz = config.speed;
+    tr.bits_per_word = config.bpw;
+
+    if (config.no_cs) {
+      cs_pin.set(false);
+    } else {
+      /* one transfer shall be completed with a deasserted CS */
+      tr.cs_change = 1;
+    }
+
+    /* one transfer transfers without a CS deassert */
+    tr.tx_nbits = tr.rx_nbits = config.bpw;
+
+    if (config.no_cs) {
+      cs_pin.set(true);
+      std::this_thread::sleep_for(2ms);
+    }
+
+    ret = ioctl(fd, SPI_IOC_MESSAGE(1), &tr);
+    if (ret < 1)
+      throw_errno("Could not transfer SPI data");
+
+    QByteArray tx_(reinterpret_cast<char *>(tx), static_cast<int>(len));
+    qDebug() << "TTX:" << tx_;
+    QByteArray rx_(reinterpret_cast<char *>(rx), static_cast<int>(len));
+    qDebug() << "TRX:" << rx_;
+    if (config.no_cs)
+      cs_pin.set(false);
+#endif
+  }
+};
+
+spi spi::spidev00("/dev/spidev0.0");
+
+struct spi_device {
+  spi &bus;
+  const config::spi &config;
+  GPIO cs;
+
+  spi_device(spi &bus_, const config::spi &config_)
+      : bus(bus_), config(config_),
+#ifdef BUILD_ON_RASPBERRY
+        cs(::intex::hw::gpio(config_.cs_pin))
+#else
+        cs(::intex::hw::debug_gpio(config_.cs_pin))
+#endif
+  {
+    if (config.no_cs) {
+      cs.set(false);
+    };
+  }
+
+  void transfer(QByteArray tx, QByteArray &rx) {
+    bus.configure(config);
+    bus.transfer(tx, rx, config, cs);
+  }
+
+  void transfer(uint8_t *tx, uint8_t *rx, uint32_t len) {
+    bus.configure(config);
+    bus.transfer(tx, rx, len, config, cs);
+  }
+};
+
+PressureSensor::PressureSensor(spi &bus, const config::spi &config,
+                               const bool high_pressure)
+    : d(std::make_unique<Impl>(bus, config, high_pressure)) {}
+
+double PressureSensor::pressure() { return d->pressure(); }
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+PressureSensor &PressureSensor::atmosphere() {
+  static std::unique_ptr<PressureSensor> instance{
+      new PressureSensor(spi::bus(0), config::pressure_atmospheric)};
+  return *instance;
+}
+PressureSensor &PressureSensor::antenna() {
+  static std::unique_ptr<PressureSensor> instance{
+      new PressureSensor(spi::bus(0), config::pressure_antenna)};
+  return *instance;
+}
+PressureSensor &PressureSensor::tank() {
+  static std::unique_ptr<PressureSensor> instance{
+      new PressureSensor(spi::bus(0), config::pressure_tank, true)};
+  return *instance;
+}
+#pragma clang diagnostic pop
 }
 }
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"

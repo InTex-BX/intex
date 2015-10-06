@@ -91,5 +91,22 @@ public:
 
   static USBHub &usbHub();
 };
+
+class spi;
+
+class PressureSensor {
+  struct Impl;
+  std::unique_ptr<Impl> d;
+
+  PressureSensor(spi &bus, const config::spi &config, const bool high = false);
+
+public:
+  double pressure();
+  double temperature();
+
+  static PressureSensor &atmosphere();
+  static PressureSensor &antenna();
+  static PressureSensor &tank();
+};
 }
 }
