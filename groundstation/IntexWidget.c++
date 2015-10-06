@@ -469,7 +469,6 @@ public:
     painter.translate(0, (size().height() - size_.height()) / 2);
     /* draw connection lines to the border of the widget */
     if (valveAction->isChecked()) {
-      const auto leftEnd = size().width() / 2 - quarterWidth;
       const auto rightEnd = size().width() / 2 + quarterWidth;
       painter.drawLine(
           QLine{0, connectionHeight, size().width(), connectionHeight});
@@ -541,8 +540,6 @@ IntexWidget::IntexWidget(QWidget *parent)
     : QFrame(parent), d(std::make_unique<Impl>(this)) {
   setFrameShape(QFrame::StyledPanel);
   setSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Expanding);
-  int row = 0;
-  int col = 0;
   auto layout = new QGridLayout(this);
   layout->setRowMinimumHeight(1, 64);
   layout->setSpacing(0);
