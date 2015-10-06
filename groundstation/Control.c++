@@ -199,7 +199,7 @@ struct Control::Impl {
                      storageLocation(intex::Subsystem::Video0),
                      storageLocation(intex::Subsystem::Video1),
                      storageLocation(intex::Subsystem::Audio0),
-                     storageLocation(intex::Subsystem::Audio0), debug),
+                     storageLocation(intex::Subsystem::Audio1), debug),
         switchWidgets_(tr("Ctrl+X"), parent, SLOT(switchWidgets())),
         switchWindows_(tr("Ctrl+Shift+X"), parent, SLOT(switchWindows())),
         showNormal_(tr("Esc"), parent, SLOT(showNormal())),

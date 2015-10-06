@@ -150,7 +150,8 @@ static QGst::PipelinePtr makePipeline(const bool debug, const uint16_t port,
 #ifdef RTPBIN
     s << " ! rtpbin.recv_rtp_sink_0 rtpbin.";
 #endif
-    s << " ! rtph264depay ! h264parse ! avdec_h264";
+    s << " ! rtph264depay ! queue ! tee name=h264" << port;
+    s << " ! queue ! h264parse ! avdec_h264";
   }
 
   s << " ! videoconvert ! tee name=raw";
@@ -158,17 +159,10 @@ static QGst::PipelinePtr makePipeline(const bool debug, const uint16_t port,
     << " ! qt5glvideosink name=" << widgetName << " force-aspect-ratio=true "
     << " raw. ! queue"
     << " ! qt5glvideosink name=" << windowName << " force-aspect-ratio=true ";
-  s << " raw. ! output-selector name=videoselector"
+  s << " h264" << port << ". ! queue ! h264parse ! mpegtsmux";
+  s << " ! output-selector name=videoselector" << port
     << " pad-negotiation-mode=active";
-  s << " ! fakesink name=videofakesink sync=false async=false";
-#if 0
-  s << " videoselector. ! splitmuxsink name=videomux"
-    << " max-byte-size=0 max-time-size=0"
-    << " location=/tmp/fallback-video-" << port << "%05d.mp4";
-#else
-  s << " videoselector. ! h264parse ! mpegtsmux";
   s << " ! filesink sync=false async=false location=" << loc;
-#endif
 
   qDebug() << pipeline;
 
@@ -197,7 +191,8 @@ static auto make_audio(const uint16_t port, const QString &loc) {
   s << " ! rtpopusdepay ! queue ! tee name=opus" << port;
   s << " opus" << port << ". ! queue ! matroskamux";
   s << " ! filesink sync=false async=false location=" << loc;
-  s << " opus" << port << ". ! opusdec ! tee name=audio" << port;
+  s << " opus" << port << ". ! queue ! opusdec";
+  s << " ! queue ! tee name=audio" << port;
 
 #ifdef RTPBIN
   s << " udpsrc port=" << port + 3 << " ! rtpbin.recv_rtcp_sink_1";
@@ -217,7 +212,7 @@ static auto make_audio_pipeline(const uint16_t port1, const uint16_t port2,
   s << make_audio(port1, leftLoc);
   s << make_audio(port2, rightLoc);
 
-  s << " interleave name=interleave ! osxaudiosink sync = false async = false ";
+  s << " interleave name=interleave ! osxaudiosink sync=false async=false ";
 
   s << " audio" << port1 << ". ! queue ! audioconvert ! interleave.";
   s << " audio" << port2 << ". ! queue ! audioconvert ! interleave.";
