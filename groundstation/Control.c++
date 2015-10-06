@@ -147,6 +147,33 @@ struct Control::Impl {
     } else {
       qDebug() << vna_temp.getTimestamp() << vna_temp.getReading().getValue();
     }
+
+    auto tank = telemetry.getTankPressure();
+    if (tank.hasError()) {
+      qDebug() << tank.getError().getReason().cStr();
+    } else {
+      auto pressure = tank.getReading().getValue();
+      qDebug() << "Tank:" << tank.getTimestamp() << pressure;
+      intexWidget->setTankPressure(pressure);
+    }
+
+    auto atmosphere = telemetry.getAtmosphericPressure();
+    if (atmosphere.hasError()) {
+      qDebug() << atmosphere.getError().getReason().cStr();
+    } else {
+      const auto pressure = atmosphere.getReading().getValue();
+      qDebug() << "Atmosphere:" << atmosphere.getTimestamp() << pressure;
+      intexWidget->setAtmosphericPressure(pressure);
+    }
+
+    auto antenna = telemetry.getAntennaPressure();
+    if (antenna.hasError()) {
+      qDebug() << antenna.getError().getReason().cStr();
+    } else {
+      const auto pressure = antenna.getReading().getValue();
+      qDebug() << "Antenna:" << antenna.getTimestamp() << pressure;
+      intexWidget->setAntennaPressure(pressure);
+    }
   }
 
   void handle_auto_datagram(QByteArray &buffer, QHostAddress &host,
