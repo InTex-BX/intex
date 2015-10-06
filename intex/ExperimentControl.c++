@@ -548,6 +548,7 @@ public:
     args << "-Dcalfile=REFL_tinyVNA-2015-10-04.cal";
     args << "-Dscanmode=REFL";
     args << "-Dexports=snp";
+    args << "-Duser.home=/media/usb-raid/vna/";
     args << "-jar";
     args << "/home/intex/vnaJ-hl.3.1.5.jar";
     nva.setArguments(args);
