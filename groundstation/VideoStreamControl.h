@@ -37,7 +37,8 @@ public:
   VideoStreamControl(VideoWidget &leftWidget, VideoWidget &rightWidget,
                      QGst::Ui::VideoWidget &leftWindow,
                      QGst::Ui::VideoWidget &rightWindow, const QString &leftLoc,
-                     const QString &rightLoc, const bool debug);
+                     const QString &rightLoc, const QString &leftAudioLoc,
+                     const QString &rightAudioLoc, const bool debug);
   ~VideoStreamControl();
 
   void switchWidgets();

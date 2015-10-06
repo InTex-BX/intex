@@ -180,7 +180,7 @@ static const char opuscaps[] =
     "encoding-name=X-GST-OPUS-DRAFT-SPITTKA-00,"
     "sprop-maxcapturerate=24000,sprop-stereo=0,payload=96,encoding-params=2";
 
-static auto make_audio(const uint16_t port) {
+static auto make_audio(const uint16_t port, const QString &loc) {
   QString pipeline;
   QTextStream s(&pipeline);
 
@@ -194,10 +194,10 @@ static auto make_audio(const uint16_t port) {
 #ifdef RTPBIN
   s << " ! rtpbin.recv_rtp_sink_1 rtpbin. ";
 #endif
-  s << " ! rtpopusdepay ! opusdec ! queue ! tee name=" << teename;
-  s << " " << teename << ". ! output-selector name=" << teename << "selector"
-    << " pad-negotiation-mode=active";
-  s << " ! fakesink name=" << teename << "fakesink sync=false async=false";
+  s << " ! rtpopusdepay ! queue ! tee name=opus" << port;
+  s << " opus" << port << ". ! queue ! matroskamux";
+  s << " ! filesink sync=false async=false location=" << loc;
+  s << " opus" << port << ". ! opusdec ! tee name=audio" << port;
 
 #ifdef RTPBIN
   s << " udpsrc port=" << port + 3 << " ! rtpbin.recv_rtcp_sink_1";
@@ -208,14 +208,17 @@ static auto make_audio(const uint16_t port) {
   return pipeline;
 }
 
-static auto make_audio_pipeline(const uint16_t port1, const uint16_t port2) {
+static auto make_audio_pipeline(const uint16_t port1, const uint16_t port2,
+                                const QString &leftLoc,
+                                const QString rightLoc) {
   QString pipeline;
   QTextStream s(&pipeline);
 
-  s << make_audio(port1);
-  s << make_audio(port2);
+  s << make_audio(port1, leftLoc);
+  s << make_audio(port2, rightLoc);
 
   s << " interleave name=interleave ! osxaudiosink sync = false async = false ";
+
   s << " audio" << port1 << ". ! queue ! audioconvert ! interleave.";
   s << " audio" << port2 << ". ! queue ! audioconvert ! interleave.";
 
@@ -227,10 +230,13 @@ static auto make_audio_pipeline(const uint16_t port1, const uint16_t port2) {
 VideoStreamControl::VideoStreamControl(
     VideoWidget &leftWidget, VideoWidget &rightWidget,
     QGst::Ui::VideoWidget &leftWindow, QGst::Ui::VideoWidget &rightWindow,
-    const QString &leftLocation, const QString &rightLocation, const bool debug)
+    const QString &leftLocation, const QString &rightLocation,
+    const QString &leftAudioLoc, const QString &rightAudioLoc, const bool debug)
     : pipeline0(makePipeline(debug, 5000, "lwidget", "lwindow", leftLocation)),
       pipeline1(makePipeline(debug, 5010, "rwidget", "rwindow", rightLocation)),
-      audio(debug ? QGst::PipelinePtr{} : make_audio_pipeline(5000, 5010)),
+      audio(debug
+                ? QGst::PipelinePtr{}
+                : make_audio_pipeline(5000, 5010, leftAudioLoc, rightAudioLoc)),
       widgetSwitcher(std::make_unique<SinkSwitcher>(pipeline0, pipeline1,
                                                     "lwidget", "rwidget")),
       windowSwitcher(std::make_unique<SinkSwitcher>(pipeline0, pipeline1,
