@@ -17,7 +17,9 @@ public:
   IntexWidget(QWidget *parent = 0);
   ~IntexWidget();
 
-  void setPressure(const double pressure);
+  void setTankPressure(const double pressure);
+  void setAtmosphericPressure(const double pressure);
+  void setAntennaPressure(const double pressure);
 
 public Q_SLOTS:
   void setConnected(bool connected);

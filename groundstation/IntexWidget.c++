@@ -521,10 +521,17 @@ struct IntexWidget::Impl {
   QPlainTextEdit *log;
   ElectricValve * valve1;
   ElectricValve * valve2;
+  QLabel *tankPressureLabel;
+  QLabel *antennaPressureLabel;
+  QLabel *atmospherePressureLabel;
+  QLabel *antennaTemperatureLabel;
 
   Impl(QWidget *parent = nullptr)
       : log(new QPlainTextEdit(parent)), valve1(new ElectricValve(parent)),
-        valve2(new ElectricValve(parent)) {
+        valve2(new ElectricValve(parent)),
+        tankPressureLabel(new QLabel("8.000 mBar")),
+        antennaPressureLabel(new QLabel("255 mBar")),
+        atmospherePressureLabel(new QLabel("42 mBar")) {
     log->setReadOnly(true);
     log->setCenterOnScroll(true);
   }
@@ -566,13 +573,13 @@ IntexWidget::IntexWidget(QWidget *parent)
 
   auto internalInfo = new QWidget;
   auto internalInfoLayout = new QFormLayout(internalInfo);
-  internalInfoLayout->addRow("Pressure:", new QLabel("8.000 mBar"));
+  internalInfoLayout->addRow("Pressure:", d->tankPressureLabel);
   internalInfoLayout->addRow("Temperature:", new QLabel("36.0 °C"));
 
   auto externalInfo = new QWidget;
   auto externalInfoLayout = new QFormLayout(externalInfo);
-  externalInfoLayout->addRow("Pressure:", new QLabel("42 mBar"));
-  externalInfoLayout->addRow("Pressure (Ant):", new QLabel("255 mBar"));
+  externalInfoLayout->addRow("Pressure:", d->atmospherePressureLabel);
+  externalInfoLayout->addRow("Pressure (Ant):", d->antennaPressureLabel);
   externalInfoLayout->addRow("Temperature:", new QLabel("-47 °C"));
 
   layout->addWidget(tank, 0, 0);
@@ -610,7 +617,15 @@ IntexWidget::IntexWidget(QWidget *parent)
 
 IntexWidget::~IntexWidget() = default;
 
-void IntexWidget::setPressure(const double pressure) {}
+void IntexWidget::setTankPressure(const double pressure) {
+  d->tankPressureLabel->setText(QString("%1 mBar").arg(pressure));
+}
+void IntexWidget::setAtmosphericPressure(const double pressure) {
+  d->atmospherePressureLabel->setText(QString("%1 mBar").arg(pressure));
+}
+void IntexWidget::setAntennaPressure(const double pressure) {
+  d->antennaPressureLabel->setText(QString("%1 mBar").arg(pressure));
+}
 
 void IntexWidget::setConnected(bool connected) {
   Q_EMIT onConnectionChanged(connected);
