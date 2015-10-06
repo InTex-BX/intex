@@ -19,7 +19,8 @@ class VideoStreamSourceControl {
   QGst::ElementPtr getElementByName(const char *name);
 
 public:
-  VideoStreamSourceControl(const enum intex::Subsystem subsystem,
+  VideoStreamSourceControl(const enum intex::Subsystem vsubsystem,
+                           const enum intex::Subsystem asubsystem,
                            const QString &host, const uint16_t port,
                            unsigned bitrate = 400000,
                            bool debug = debug_default());

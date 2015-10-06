@@ -479,9 +479,9 @@ public:
     announce_socket.connectToHost(host, intex_auto_request_port());
 
     source0 = std::make_unique<VideoStreamSourceControl>(
-        intex::Subsystem::Video0, host, 5000);
+        intex::Subsystem::Video0, intex::Subsystem::Audio0, host, 5000);
     source1 = std::make_unique<VideoStreamSourceControl>(
-        intex::Subsystem::Video1, host, 5010);
+        intex::Subsystem::Video1, intex::Subsystem::Audio1, host, 5010);
   }
   ~Impl() noexcept {}
 

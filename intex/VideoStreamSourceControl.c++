@@ -222,7 +222,8 @@ static GstPadProbeReturn fix_buffer_timestamp_probe(GstPad *,
 class StreamFileSink : public QObject {
   Q_OBJECT
 
-  std::function<QString(void)> storageLocation;
+  std::function<QString(void)> videoStorageLocation;
+  std::function<QString(void)> audioStorageLocation;
 
   QGst::PipelinePtr pipeline;
   QGst::ElementPtr audioselector;
@@ -234,18 +235,21 @@ class StreamFileSink : public QObject {
   QGst::PadPtr audiofilesinkpad;
 
   const char *videoLocation(const guint &) {
-    return strdup(storageLocation().toLocal8Bit().constData());
+    return strdup(videoStorageLocation().toLocal8Bit().constData());
   }
 
   const char *audioLocation(const guint &) {
-    return strdup(storageLocation().append(".mp4").toLocal8Bit().constData());
+    return strdup(audioStorageLocation().toLocal8Bit().constData());
   }
 
 public:
-  StreamFileSink(const enum intex::Subsystem subsystem,
+  StreamFileSink(const enum intex::Subsystem vsubsys,
+                 const enum intex::Subsystem asubsys,
                  QGst::PipelinePtr pipeline_)
-      : storageLocation(
-            [subsystem] { return intex::storageLocation(subsystem); }),
+      : videoStorageLocation(
+            [vsubsys] { return intex::storageLocation(vsubsys); }),
+        audioStorageLocation(
+            [asubsys] { return intex::storageLocation(asubsys); }),
         pipeline(pipeline_),
         audioselector(pipeline->getElementByName("audio-selector")),
         audiomux(pipeline->getElementByName("audiomux")),
@@ -315,18 +319,19 @@ struct VideoStreamSourceControl::Impl {
   QGst::PipelinePtr pipeline;
   StreamFileSink filesink;
 
-  Impl(const enum intex::Subsystem subsystem, const QString &host,
+  Impl(const enum intex::Subsystem vsubsystem,
+       const enum intex::Subsystem asubsystem, const QString &host,
        const uint16_t port, unsigned bitrate, const bool debug)
-      : pipeline(make_pipeline(subsystem, host, port, debug)),
-        filesink(subsystem, pipeline) {
-    if (subsystem != intex::Subsystem::Video0 &&
-        subsystem != intex::Subsystem::Video1) {
+      : pipeline(make_pipeline(vsubsystem, host, port, debug)),
+        filesink(vsubsystem, asubsystem, pipeline) {
+    if (vsubsystem != intex::Subsystem::Video0 &&
+        vsubsystem != intex::Subsystem::Video1) {
       throw std::runtime_error(
           "FileSinkManager requires subsystem to be Video0 or Video1");
     }
     pipeline->setState(QGst::StatePlaying);
     std::string filename("pipeline" +
-                         std::to_string(static_cast<int>(subsystem)));
+                         std::to_string(static_cast<int>(vsubsystem)));
     GST_DEBUG_BIN_TO_DOT_FILE(pipeline.staticCast<QGst::Bin>(),
                               GST_DEBUG_GRAPH_SHOW_ALL, filename.c_str());
   }
@@ -334,9 +339,11 @@ struct VideoStreamSourceControl::Impl {
 };
 
 VideoStreamSourceControl::VideoStreamSourceControl(
-    const enum intex::Subsystem subsystem, const QString &host,
+    const enum intex::Subsystem vsubsystem,
+    const enum intex::Subsystem asubsystem, const QString &host,
     const uint16_t port, unsigned bitrate, bool debug)
-    : d(std::make_unique<Impl>(subsystem, host, port, bitrate, debug)) {}
+    : d(std::make_unique<Impl>(vsubsystem, asubsystem, host, port, bitrate,
+                               debug)) {}
 
 VideoStreamSourceControl::~VideoStreamSourceControl() = default;
 
