@@ -117,7 +117,7 @@ static QGst::PipelinePtr make_pipeline(const enum intex::Subsystem subsys,
     pipeline << " ! splitmuxsink name=videomux muxer=mpegtsmux";
     pipeline << " location=/media/usb-raid/video/fallback-video" << port
              << "-%05d.mpeg";
-    pipeline << " max-size-time=0 max-size-bytes=0";
+    pipeline << " max-size-time=0 max-size-bytes=0 sync=false async=false";
 
     /* vfsrc */
     pipeline << " " << devName << ".vfsrc ! queue ! "
@@ -163,7 +163,7 @@ static QGst::PipelinePtr make_pipeline(const enum intex::Subsystem subsys,
     pipeline << " ! fakesink name=audiofakesink sync=false async=false";
     pipeline << " audio-selector.";
     pipeline << " ! splitmuxsink name=audiomux"
-             << " max-size-time=0 max-size-bytes=0"
+             << " max-size-time=0 max-size-bytes=0 sync=false async=false"
              << " location=/media/usb-raid/video/fallback-audio" << port
              << "%05d.mp4";
 
