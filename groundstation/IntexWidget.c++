@@ -631,6 +631,15 @@ void IntexWidget::setAtmosphericPressure(const double pressure) {
 void IntexWidget::setAntennaPressure(const double pressure) {
   d->antennaPressureLabel->setText(QString("%1 mBar").arg(pressure * 1000));
 }
+void IntexWidget::setAntennaInnerTemperature(const double temperature) {
+  d->antennaInnerTemperatureLabel->setText(QString("%1 °C").arg(temperature));
+}
+void IntexWidget::setAntennaOuterTemperature(const double temperature) {
+  d->antennaOuterTemperatureLabel->setText(QString("%1 °C").arg(temperature));
+}
+void IntexWidget::setAtmosphereTemperature(const double temperature) {
+  d->atmosphereTemperatureLabel->setText(QString("%1 °C").arg(temperature));
+}
 
 void IntexWidget::setConnected(bool connected) {
   Q_EMIT onConnectionChanged(connected);

@@ -20,6 +20,9 @@ public:
   void setTankPressure(const double pressure);
   void setAtmosphericPressure(const double pressure);
   void setAntennaPressure(const double pressure);
+  void setAntennaInnerTemperature(const double temperature);
+  void setAntennaOuterTemperature(const double temperature);
+  void setAtmosphereTemperature(const double temperature);
 
 public Q_SLOTS:
   void setConnected(bool connected);
