@@ -147,6 +147,7 @@ static QGst::PipelinePtr make_pipeline(const enum intex::Subsystem subsys,
   pipeline << " udpsrc port=" << port + 5 << " ! rtpbin.recv_rtcp_sink_0";
 #endif
 
+#ifdef BUILD_ON_RASPBERRY
   if (have_device) {
     /* alsasrc */
     pipeline << " alsasrc name=micro device=" << device.second;
@@ -187,6 +188,7 @@ static QGst::PipelinePtr make_pipeline(const enum intex::Subsystem subsys,
 #ifdef RTPBIN
   pipeline << " rtpbin.send_rtcp_src_1 ! " << make_udpsink(host, port + 3);
   pipeline << " udpsrc port=" << port + 7 << " ! rtpbin.recv_rtcp_sink_1";
+#endif
 #endif
 
   qDebug() << buf;
@@ -329,7 +331,9 @@ struct VideoStreamSourceControl::Impl {
       throw std::runtime_error(
           "FileSinkManager requires subsystem to be Video0 or Video1");
     }
+#ifdef BUILD_ON_RASPBERRY
     pipeline->setState(QGst::StatePlaying);
+#endif
     std::string filename("pipeline" +
                          std::to_string(static_cast<int>(vsubsystem)));
     GST_DEBUG_BIN_TO_DOT_FILE(pipeline.staticCast<QGst::Bin>(),
