@@ -452,6 +452,36 @@ class ExperimentControl::Impl : public QObject {
     } catch (const std::runtime_error &e) {
       qCritical() << e.what();
     }
+
+    auto tank = telemetry.initTankPressure();
+    tank.setTimestamp(system_clock::now().time_since_epoch().count());
+    try {
+      auto pressure = hw::PressureSensor::tank().pressure();
+      qDebug() << "Tank pressure:" << pressure;
+      tank.initReading().setValue(pressure);
+    } catch (const std::runtime_error &e) {
+      tank.initError().setReason(e.what());
+    }
+
+    auto antenna = telemetry.initAntennaPressure();
+    antenna.setTimestamp(system_clock::now().time_since_epoch().count());
+    try {
+      auto pressure = hw::PressureSensor::antenna().pressure();
+      qDebug() << "Antenna pressure:" << pressure;
+      antenna.initReading().setValue(pressure);
+    } catch (const std::runtime_error &e) {
+      antenna.initError().setReason(e.what());
+    }
+
+    auto atmosphere = telemetry.initAtmosphericPressure();
+    atmosphere.setTimestamp(system_clock::now().time_since_epoch().count());
+    try {
+      auto pressure = hw::PressureSensor::atmosphere().pressure();
+      qDebug() << "Atmosphere pressure:" << pressure;
+      atmosphere.initReading().setValue(pressure);
+    } catch (const std::runtime_error &e) {
+      atmosphere.initError().setReason(e.what());
+    }
   }
 
   template <typename Callback>
