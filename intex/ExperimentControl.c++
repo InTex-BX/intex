@@ -414,21 +414,6 @@ class ExperimentControl::Impl : public QObject {
     }
   }
 
-  void enableCameras() {
-    QTime duration;
-
-    for (duration.start();
-         duration.elapsed() < duration_cast<milliseconds>(1s).count();) {
-      try {
-        findDevice(1);
-      } catch (const std::runtime_error &e) {
-        qCritical() << e.what();
-        continue;
-      }
-      break;
-    }
-  }
-
   template <typename Callback>
   auto dispatch_video_controls(const InTexFeed service, Callback &&callback) {
     switch (service) {
@@ -493,7 +478,6 @@ public:
                        "Announce Reply");
     announce_socket.connectToHost(host, intex_auto_request_port());
 
-    enableCameras();
     source0 = std::make_unique<VideoStreamSourceControl>(
         intex::Subsystem::Video0, host, 5000);
     source1 = std::make_unique<VideoStreamSourceControl>(
