@@ -281,6 +281,7 @@ public:
   }
 
   void start() {
+    next();
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wold-style-cast"
     g_signal_emit_by_name(
