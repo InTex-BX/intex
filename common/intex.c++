@@ -30,6 +30,9 @@ static QString subdirectory(const enum Subsystem subsys) {
   case Subsystem::Video0:
   case Subsystem::Video1:
     return "video";
+  case Subsystem::Audio0:
+  case Subsystem::Audio1:
+    return "audio";
   case Subsystem::Telemetry:
     return "telemetry";
   case Subsystem::Log:
@@ -42,6 +45,9 @@ static QString suffix(const enum Subsystem subsys) {
   case Subsystem::Video0:
   case Subsystem::Video1:
     return "mpeg";
+  case Subsystem::Audio0:
+  case Subsystem::Audio1:
+    return "mp4";
   case Subsystem::Telemetry:
     return "data";
   case Subsystem::Log:
@@ -55,6 +61,10 @@ QString deviceName(const enum Subsystem subsys) {
     return "cam0";
   case Subsystem::Video1:
     return "cam1";
+  case Subsystem::Audio0:
+    return "micro0";
+  case Subsystem::Audio1:
+    return "micro1";
   case Subsystem::Telemetry:
     return "telementry";
   case Subsystem::Log:

@@ -36,7 +36,7 @@ Q_SIGNALS:
   // clang-format on
 };
 
-enum class Subsystem { Video0, Video1, Telemetry, Log };
+enum class Subsystem { Video0, Video1, Audio0, Audio1, Telemetry, Log };
 QString storageLocation(const enum Subsystem subsys, unsigned int *last =
     nullptr);
 QString deviceName(const enum Subsystem subsys);
