@@ -7,6 +7,7 @@
 
 #include <cerrno>
 #include <cstring>
+#include <cmath>
 
 #include <unistd.h>
 #include <assert.h>
@@ -23,6 +24,7 @@ extern "C" {
 #include <QTimer>
 #include <QString>
 #include <QFileInfo>
+#include <QByteArray>
 
 #include "IntexHardware.h"
 
@@ -933,6 +935,660 @@ struct spi_device {
   void transfer(uint8_t *tx, uint8_t *rx, uint32_t len) {
     bus.configure(config);
     bus.transfer(tx, rx, len, config, cs);
+  }
+};
+
+#if 1
+struct TemperatureSensor::Impl {
+  static constexpr uint8_t zero = 0;
+  enum class Command : uint8_t {
+    Reset = 0x06,
+    ReadOnce = 0x12,
+    SelfOCal = 0x62,
+    RegRead = 0x20,
+    RegWrite = 0x40,
+    NOP = 0xff,
+  };
+
+  enum class Register : uint8_t {
+    MUX0 = 0x0,
+    VBIAS = 0x1,
+    MUX1 = 0x2,
+    SYS0 = 0x3,
+    IDAC0 = 0xa,
+    IDAC1 = 0xb,
+  };
+
+  enum class Channel : uint8_t {
+    AIN0 = 0,
+    AIN1 = 1,
+    AIN2 = 2,
+    AIN3 = 3,
+    AIN4 = 4,
+    AIN5 = 5,
+    AIN6 = 6,
+    AIN7 = 7,
+  };
+
+  static const char *to_string(const enum Command cmd) {
+    switch (cmd) {
+    case Command::Reset:
+      return "Reset";
+    case Command::ReadOnce:
+      return "ReadOnce";
+    case Command::SelfOCal:
+      return "SelfOCal";
+    case Command::RegRead:
+      return "RegRead";
+    case Command::RegWrite:
+      return "RegWrite";
+    case Command::NOP:
+      return "NOP";
+    }
+  }
+
+  static const char *to_string(const enum Register reg) {
+    switch (reg) {
+    case Register::MUX0:
+      return "MUX0";
+    case Register::VBIAS:
+      return "VBIAS";
+    case Register::MUX1:
+      return "MUX1";
+    case Register::SYS0:
+      return "SYS0";
+    case Register::IDAC0:
+      return "IDAC0";
+    case Register::IDAC1:
+      return "IDAC1";
+    }
+  }
+
+  static uint8_t channel2mux(const Sensor sensor) {
+    switch (sensor) {
+    case Sensor::InnerRing:  /*13*/
+      return ((static_cast<uint8_t>(Channel::AIN2) << 3) |
+              static_cast<uint8_t>(Channel::AIN3));
+    case Sensor::OuterRing:/* 25 */
+      return ((static_cast<uint8_t>(Channel::AIN4) << 3) |
+              static_cast<uint8_t>(Channel::AIN5));
+    case Sensor::Atmosphere: /* 1 */
+      return ((static_cast<uint8_t>(Channel::AIN0) << 3) |
+              static_cast<uint8_t>(Channel::AIN1));
+    }
+  }
+
+  static uint8_t channel2idac(const Sensor sensor) {
+    switch (sensor) {
+    case Sensor::InnerRing:  /*13*/
+      return ((static_cast<uint8_t>(Channel::AIN2) << 4) |
+              static_cast<uint8_t>(Channel::AIN3));
+    case Sensor::OuterRing:/* 25 */
+      return ((static_cast<uint8_t>(Channel::AIN4) << 4) |
+              static_cast<uint8_t>(Channel::AIN5));
+    case Sensor::Atmosphere: /* 1 */
+      return ((static_cast<uint8_t>(Channel::AIN0) << 4) |
+              static_cast<uint8_t>(Channel::AIN1));
+    }
+  }
+
+  GPIO reset_pin;
+  spi_device device;
+
+  uint8_t read_register(const enum Register reg) {
+    QByteArray tx;
+    QByteArray rx;
+
+    tx.append(static_cast<char>(static_cast<uint8_t>(Command::RegRead) +
+                                static_cast<uint8_t>(reg)));
+    // single byte read + dummy data
+    tx.append(zero);
+    tx.append(zero);
+
+    device.transfer(tx, rx);
+
+    qDebug() << "Read register" << reg << QString::number(rx.at(2), 16);
+    return static_cast<uint8_t>(rx.at(2));
+  }
+
+  void write_register(const enum Register reg, const uint8_t value) {
+    QByteArray tx;
+    QByteArray rx;
+    uint8_t mask = 0;
+
+    tx.append(static_cast<char>(static_cast<uint8_t>(Command::RegWrite) +
+                                static_cast<uint8_t>(reg)));
+    // single byte read + data
+    tx.append(zero);
+    tx.append(static_cast<char>(value));
+
+    qDebug() << "Write register" << reg << tx;
+
+    device.transfer(tx, rx);
+
+    /* id is fixed */
+    if (reg == Register::IDAC0)
+      mask = 0xf0;
+
+    /* clkstat is fixed */
+    if (reg == Register::MUX1)
+      mask = 0x80;
+
+    std::this_thread::sleep_for(30ms);
+
+    if ((value | mask) != (read_register(reg) | mask)) {
+      std::ostringstream os;
+      os << "Error writing register " << reg << " (" << std::hex
+         << static_cast<uint32_t>(value) << "/"
+         << static_cast<uint32_t>(read_register(reg)) << ")";
+      throw std::runtime_error(os.str());
+    }
+  }
+
+  void reset() {
+    reset_pin.set(true);
+    std::this_thread::sleep_for(1ms);
+    reset_pin.set(false);
+    std::this_thread::sleep_for(1ms);
+
+    QByteArray tx;
+    QByteArray rx;
+    tx.append(static_cast<uint8_t>(Command::Reset));
+
+    device.transfer(tx, rx);
+    std::this_thread::sleep_for(200ms);
+  }
+
+  void self_offset_calibration() {
+    QByteArray tx;
+    QByteArray rx;
+    tx.append(static_cast<uint8_t>(Command::SelfOCal));
+    device.transfer(tx, rx);
+    /* datasheet table 10 */
+    std::this_thread::sleep_for(100ms);
+  }
+
+  void init() {
+    reset();
+
+    {
+      for (; read_register(Register::IDAC1) != 0xff;) {
+        qDebug() << "Waiting for reset";
+        std::this_thread::sleep_for(20ms);
+      }
+    }
+
+    write_register(Register::IDAC0, 0x0);
+  }
+
+  void select_sensor(const enum Sensor sensor) {
+    write_register(Register::MUX0, channel2mux(sensor));
+    write_register(Register::VBIAS, 0x0);
+    write_register(Register::MUX1, 0x20);
+    write_register(Register::SYS0, 0x70);
+    write_register(Register::IDAC1, channel2idac(sensor));
+    write_register(Register::IDAC0, 0x4);
+    std::this_thread::sleep_for(300ms);
+  }
+
+public:
+  friend std::ostream &operator<<(std::ostream &os, const enum Command cmd) {
+    return os << to_string(cmd);
+  }
+
+  friend QDebug operator<<(QDebug os, const enum Command cmd) {
+    return os << to_string(cmd);
+  }
+
+  friend std::ostream &operator<<(std::ostream &os, const enum Register reg) {
+    return os << to_string(reg);
+  }
+
+  friend QDebug operator<<(QDebug os, const enum Register reg) {
+    return os << to_string(reg);
+  }
+
+  Impl()
+      :
+#ifdef BUILD_ON_RASPBERRY
+        reset_pin(::intex::hw::gpio(config::ads1248_reset)),
+#else
+        reset_pin(::intex::hw::debug_gpio(config::ads1248_reset)),
+#endif
+        device(spi::bus(0), config::ads1248) {
+    init();
+  }
+
+  double temperature(const enum Sensor sensor) {
+    init();
+    select_sensor(sensor);
+
+    {
+      /* init measurement */
+      QByteArray tx;
+      QByteArray rx;
+
+      tx.append(static_cast<char>(Command::ReadOnce));
+      device.transfer(tx, rx);
+    }
+
+    std::this_thread::sleep_for(7ms);
+    QByteArray rx;
+    {
+      /* read data */
+      QByteArray tx;
+
+      tx.append(static_cast<char>(Command::NOP));
+      tx.append(static_cast<char>(Command::NOP));
+      tx.append(static_cast<char>(Command::NOP));
+      device.transfer(tx, rx);
+    }
+
+#if 0
+    uint32_t code = 0;
+    for (int i = 0; i < rx.size(); ++i) {
+      code |=
+          (static_cast<uint32_t>(rx.at(i)) << ((rx.size() - i - 1) * CHAR_BIT));
+    }
+
+    qDebug() << "Temp code:" << code;
+    if (code >= 0x800000) {
+      code |= 0xff000000;
+    }
+    double temp = static_cast<double>(static_cast<int32_t>(code));
+
+    temp = temp * 2.02097 * 10e-9;
+    temp = temp / (0.0005 * 0.385);
+    return temp;
+#else
+    double rbin = rx[0] * std::pow(2, 16) + rx[1] * std::pow(2, 8) + rx[2];
+    if (rbin > std::pow(2, 23)) {
+      rbin = rbin - std::pow(2, 24);
+    }
+
+    // Umrechnung
+    double T = rbin * 2.02097 * std::pow(10, -9);
+    T = T / (0.0005 * 0.385);
+    return T;
+#endif
+  }
+};
+
+TemperatureSensor::TemperatureSensor() : d(std::make_unique<Impl>()) {}
+
+double TemperatureSensor::temperature(const enum Sensor sensor) {
+  return d->temperature(sensor);
+}
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+TemperatureSensor &TemperatureSensor::temperatureSensor() {
+  static std::unique_ptr<TemperatureSensor> instance{new TemperatureSensor()};
+
+  return *instance;
+}
+#pragma clang diagnostic pop
+
+#endif
+
+struct ADS1248::Impl {
+  GPIO reset_pin;
+  GPIO *cs_pin;
+  spi_device device;
+  config::spi _config;
+
+public:
+  Impl(const config::spi &config, const config::gpio &reset)
+      : reset_pin(::intex::hw::gpio(reset)),
+        device(spi::bus(0), config::ads1248), _config(config) {
+
+    if (config.no_cs) {
+      cs_pin = new GPIO(::intex::hw::gpio(config.cs_pin));
+      cs_pin->set(false);
+    };
+  }
+
+  void reset() {
+    reset_pin.set(true);
+#ifdef SPIDEBUG
+    std::cout << "Reset active (low)" << std::endl;
+    // std::cin.get();
+
+    std::cout << "Reset deactivated (high)" << std::endl;
+#endif
+    reset_pin.set(false);
+    // std::cin.get();
+
+    uint8_t tx[] = {0x06};
+    uint8_t rx[1];
+
+    device.transfer(&tx[0], &rx[0], 1);
+    std::this_thread::sleep_for(200ms);
+  }
+
+  void selfOff() { // perform selfoffset calibration
+    uint8_t tx[3] = {0x62};
+    uint8_t rx[3] = {0x0};
+    device.transfer(&tx[0], &rx[0], 1);
+    std::this_thread::sleep_for(5ms);
+  }
+
+  /*return true if device is present, false if communication is not possible*/
+  void _init() {
+    reset();
+    // device.configure();
+    // std::this_thread::sleep_for(5ms);
+
+    bool ADP_ready = false;
+    // hier schicke ich solange die Anfrage ein Register auszulesen 0x02B dessen
+    // Inhalt nach Reset bekannt ist
+    // bis ich das Richtige Ergebnis zurückkriege 0xFF
+
+    uint8_t tx_ready[3] = {0x2B, 0x0, 0x0};
+    uint8_t rx_ready[3] = {0, 0, 0x0};
+
+    while (!ADP_ready) {
+      device.transfer(&tx_ready[0], &rx_ready[0], 3);
+#ifdef SPIDEBUG
+      std::cout << "Lese Register 0x0B -->"
+                << static_cast<unsigned int>(rx_ready[2]) << std::endl;
+#endif
+      if (static_cast<unsigned int>(rx_ready[2]) == 0xFF) {
+        ADP_ready = true;
+#ifdef SPIDEBUG
+        std::cout << "Register 0x0B korrekt ausgelesen" << std::endl;
+#endif
+      }
+    }
+
+    // Dann schreibe ich in Register 0x0A ,0x08 rein um DRDY & DOUT
+    // Funktionalität zu setzen
+    // mit anschließender Kontrolle ob es richtig gesetzt ist
+    uint8_t tx_drdydout_write[3] = {0x4A, 0x0, 0x00};
+    uint8_t rx_drdydout_write[3] = {0, 0, 0x0};
+    uint8_t chip_id;
+
+    // auf reset-werte setzen
+    uint8_t tx_drdydout_rewrite[3] = {0x4A, 0x0, 0x00};
+    device.transfer(&tx_drdydout_rewrite[0], &rx_drdydout_write[0], 3);
+
+    // chip_id auslesen
+    uint8_t tx_drdydout_read[3] = {0x2A, 0x0, 0x00};
+    uint8_t rx_drdydout_read[3] = {0, 0, 0x0};
+    device.transfer(&tx_drdydout_read[0], &rx_drdydout_read[0], 3);
+    chip_id = static_cast<uint8_t>(rx_drdydout_read[2]);
+
+    // solange register beschreiben bis korrekter Wert drinne ist
+    ADP_ready = false;
+    while (!ADP_ready) {
+
+      // schreibe in Register 0x0A
+      device.transfer(&tx_drdydout_write[0], &rx_drdydout_write[0], 3);
+      // lese aus Register 0x0A
+      device.transfer(&tx_drdydout_read[0], &rx_drdydout_read[0], 3);
+#ifdef SPIDEBUG
+      std::cout << "Lese Register 0x0A --> "
+                << static_cast<unsigned int>(rx_drdydout_read[2]) << std::endl;
+#endif
+      if (static_cast<unsigned int>(rx_drdydout_read[2]) - chip_id == 0) {
+        ADP_ready = true;
+#ifdef SPIDEBUG
+        std::cout << "Register 0x0A korrekt ausgelesen" << std::endl;
+#endif
+      }
+    }
+
+    // selfOff();
+  }
+
+  double binToTemp(uint8_t rx[3]) { // rechnet binäres Ergebnis in Temperatur um
+    // zusammenfügen
+    // zweier komplement bilden
+    // Umrechnen über näherungsformel (Cbin*LSB)/(I*TR)
+    // zusammenfügen
+    double rbin = rx[0] * std::pow(2, 16) + rx[1] * std::pow(2, 8) + rx[2];
+    qDebug() << "Temp code T:" << rbin;
+    // zweierkomplement weg rechnen
+    // std::cout<< static_cast<unsigned int>(rx[0])<<static_cast<unsigned
+    // int>(rx[1])<<static_cast<unsigned int>(rx[2])<<std::endl;
+    if (rbin > std::pow(2, 23)) {
+      rbin = rbin - std::pow(2, 23);
+      std::cout << "negativ" << std::endl;
+    }
+
+    // Umrechnung
+    double T = rbin * 2.02097 * std::pow(10, -9);
+    T = T / (0.0005 * 0.385);
+    return T;
+  }
+
+  double binToTemp_intern(uint8_t rx[3]) {
+    double rbin = rx[0] * std::pow(2, 16) + rx[1] * std::pow(2, 8) + rx[2];
+
+    return rbin;
+  }
+
+  int wrReg(uint8_t reg, uint8_t val) {
+    if ((reg > 0xE) || (val > 0xFF)) {
+      std::cout << "#### register or val to high, see IntexHardware::WRREG()"
+                << std::endl;
+      return -1;
+    }
+
+    uint8_t tx[3] = {0x0, 0x0, val};
+    tx[0] = 0x40 + reg;
+    // std::cout<< static_cast<unsigned int>(tx[0])<<"+++"<<static_cast<unsigned
+    // int>(tx[1])<<"+++"<<static_cast<unsigned int>(tx[2])<<std::endl;
+    uint8_t rx[3] = {0, 0, 0};
+    device.transfer(tx, rx, 3);
+    // control if new value in reg
+    uint8_t txc[3] = {0x0, 0x0, 0x0};
+    txc[0] = 0x20 + reg;
+    // std::cout<< static_cast<unsigned
+    // int>(txc[0])<<"+++"<<static_cast<unsigned
+    // int>(txc[1])<<"+++"<<static_cast<unsigned int>(txc[2])<<std::endl;
+    uint8_t rxc[3] = {0x0, 0x0, 0x0};
+    // lese aus
+    std::this_thread::sleep_for(30ms);
+    device.transfer(txc, rxc, 3);
+    // std::cout<< std::hex<<std::hex<<static_cast<unsigned
+    // int>(rxc[2])<<std::endl;
+    uint8_t val_regA = val + 128;
+    if ((reg == 0xA) && (rxc[2] = val_regA)) {
+      return 1;
+    }
+    if (rxc[2] != val) {
+      std::cout << static_cast<unsigned int>(reg) << std::endl;
+      std::cout << "#### Writing to register fails, see IntexHardware::WRREG() "
+                << std::endl;
+      return -1;
+    }
+    return 1;
+  }
+  /*sensor_num - starting at sensor 0*/
+  void sensor_modus(uint8_t sensor_num) {
+    // schalte auf pt100 1 um
+    uint32_t error_array[6] = {0, 0, 0, 0, 0, 0};
+    // std::cout<<"##### Start sensor modus #####"<<std::endl;
+    // std::cout<<"##### sensor nummer : "<<std::dec<<static_cast<unsigned
+    // int>(sensor_num)<<std::endl;
+    uint8_t parameter = ((2 * sensor_num) + 1) | (2 * sensor_num) << 3;
+    // std::cout<<"##### first byte = "<<std::hex<<static_cast<unsigned
+    // int>(parameter)<<std::endl;
+
+    // Eingänge für PGA setzen und SPS auf 160
+    while (wrReg(0x0, ((2 * sensor_num) + 1) | (2 * sensor_num) << 3) < 0) {
+      error_array[0]++;
+    }
+    // VBIAS setzen
+    while (wrReg(0x1, 0x00) < 0) {
+      error_array[1]++;
+    }
+    // i=wrReg(0x1,0x0);
+    // internal reference on for IDAC
+    while (wrReg(0x2, 0x20) < 0) {
+      error_array[2]++;
+    }
+    // sys control 0, PGAwert setzen und SPS
+    while (wrReg(0x03, 0x70) < 0) {
+      error_array[3]++;
+    }
+    // IDAC reg1
+    while (wrReg(0x0B, ((2 * sensor_num) + 1) | (2 * sensor_num) << 4) < 0) {
+      error_array[4]++;
+    }
+    // IDAC reg0
+    // while(wrReg(0x0A,0x0C)<0){
+    while (wrReg(0x0A, 0x04) < 0) {
+      error_array[5]++;
+    }
+    // std::cout<<"### ERROR ARRAY-->" <<
+    // error_array[5]<<"---"<<error_array[4]<<"---"<<error_array[3]<<"---"<<error_array[2]<<"---"<<error_array[1]<<"---"<<error_array[0]<<std::endl;
+    // selfOffset calibration
+    std::this_thread::sleep_for(300ms);
+    // see manual page 35 for SPS 40 settling time < 8ms
+    // std::cout<<"##### End sensor modus #####"<<std::endl;
+  }
+
+  void spi_loop() {
+
+    uint16_t modus = 1; // 0 interne Diode, 1 RTD1
+
+    while (modus == 1) {
+
+      uint8_t tx3[1] = {0x12};
+      uint8_t rx3[1] = {0x0};
+      device.transfer(tx3, rx3, 1);
+      std::this_thread::sleep_for(5ms);
+      uint8_t tx4[3] = {0xFF, 0xFF, 0xFF};
+      uint8_t rx4[3] = {0x0, 0x0, 0x0};
+      device.transfer(tx4, rx4, 3);
+      std::cout << "conversion result-->" << static_cast<unsigned int>(rx4[0])
+                << "---" << static_cast<unsigned int>(rx4[1]) << "---"
+                << static_cast<unsigned int>(rx4[2]) << std::endl;
+      double temperature = binToTemp(rx4);
+      std::cout << "temperature -->" << std::dec << temperature << "°C"
+                << std::endl;
+    }
+    ////////############ interne Dioden Messung #############
+
+    // wenn nein schreibe in register
+    uint8_t tx2[3] = {0x42, 0x0, 0x33};
+    uint8_t rx2[3] = {0, 0, 0};
+    device.transfer(tx2, rx2, 3);
+    std::cout << "Auf interne Dioden umgeschalten --> " << std::endl;
+
+    while (modus == 0) {
+      uint8_t tx3[1] = {0x12};
+      uint8_t rx3[1] = {0};
+      device.transfer(tx3, rx3, 1);
+      std::this_thread::sleep_for(5ms);
+      uint8_t tx4[3] = {0xFF, 0xFF, 0xFF};
+      uint8_t rx4[3] = {0, 0, 0};
+      device.transfer(tx4, rx4, 3);
+      std::cout << "interne Diodenmessung" << std::endl;
+      double temperature = binToTemp_intern(rx4);
+      std::cout << "temperature -->" << temperature << "°C, Diode" << std::endl;
+    }
+  }
+
+  double messung_extern() {
+    uint8_t tx3[1] = {0x12};
+    uint8_t rx3[1] = {0x0};
+    device.transfer(tx3, rx3, 1);
+    std::this_thread::sleep_for(5ms);
+    uint8_t tx4[3] = {0xFF, 0xFF, 0xFF};
+    uint8_t rx4[3] = {0x0, 0x0, 0x0};
+    device.transfer(tx4, rx4, 3);
+    // std::cout<<"conversion result-->" << static_cast<unsigned
+    // int>(rx4[0])<<"---"<<static_cast<unsigned
+    // int>(rx4[1])<<"---"<<static_cast<unsigned int>(rx4[2])<<std::endl;
+    double temperature = binToTemp(rx4);
+    return temperature;
+  }
+
+  double manual_calibration(
+      uint8_t sensor_select) { // 100 Messungen zur Mittelwertbestimmung
+    double mittelwert;
+    _init();
+    sensor_modus(sensor_select);
+    // for(int i=0;i<20;i++)
+    /*
+        while(1)
+        {
+        mittelwert=messung_extern();
+        std::this_thread::sleep_for(30ms);
+        }
+        return mittelwert;
+    */
+    //    for(int i=0;i<100;i++){
+    mittelwert = messung_extern();
+    //            std::this_thread::sleep_for(200ms);
+
+    //}
+    // std::cout<<"##############################################"<<std::endl;
+    return mittelwert;
+  }
+
+private:
+};
+
+ADS1248::ADS1248(const config::spi &config, const config::gpio &reset) {
+  /*Why can I not use the std::make_unique<Impl> way here?*/
+  d = new Impl(config, reset);
+  d->reset();
+}
+
+double ADS1248::selftest(uint8_t sensor_select) {
+  double x = 0;
+  d->_init();
+  return d->manual_calibration(sensor_select);
+}
+
+ADS1248 &ADS1248::sensor() {
+  static std::unique_ptr<ADS1248> instance{
+      new ADS1248(config::ads1248, config::ads1248_cs)};
+  return *instance;
+}
+
+struct PressureSensor::Impl {
+  spi_device device;
+  const config::spi &config;
+  const bool high_pressure;
+
+  Impl(spi &bus, const config::spi &config_, const bool high_pressure_)
+      : device(bus, config_), config(config_), high_pressure(high_pressure_) {}
+  double pressure() {
+    double pressure = 0.0;
+    for (int i = 0; i < 10; ++i) {
+      QByteArray tx;
+      QByteArray rx;
+      tx.append(static_cast<char>(0));
+      tx.append(static_cast<char>(0));
+      tx.append(static_cast<char>(0));
+      device.transfer(tx, rx);
+
+      uint16_t status = (rx[0] >> 6) & 3;
+      if (status) {
+        throw std::runtime_error("Error reading pressure sensor: " +
+                                 std::to_string(status));
+      }
+
+      const uint32_t bin = (static_cast<uint16_t>(rx.at(0) & 0x3f) << 8) |
+                           static_cast<uint16_t>(rx.at(1));
+      pressure = static_cast<double>(bin) - 1638.4;
+      if (high_pressure) {
+        pressure = pressure * 150.0 / 13107.2;
+        pressure = pressure / 14.504;
+      } else {
+        pressure = pressure * 1.6 / 13107.2;
+      }
+#if 0
+      double t1 = double(uint16_t(rx[2]) << 3);
+      std::cout << "Temperatur :  " << bin_to_temp(t1) << std::endl;
+#endif
+    }
+    return pressure;
   }
 };
 

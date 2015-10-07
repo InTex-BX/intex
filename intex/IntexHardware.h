@@ -92,6 +92,29 @@ public:
   static USBHub &usbHub();
 };
 
+class TemperatureSensor {
+  struct Impl;
+  std::unique_ptr<Impl> d;
+
+  TemperatureSensor();
+
+public:
+  enum class Sensor : uint8_t { InnerRing, OuterRing, Atmosphere };
+  double temperature(const enum Sensor sensor);
+  static TemperatureSensor &temperatureSensor();
+};
+
+class ADS1248 {
+
+  struct Impl;
+  Impl *d;
+
+public:
+  ADS1248(const config::spi &config, const config::gpio &reset);
+  double selftest(uint8_t sensor_select);
+  static ADS1248 &sensor();
+};
+
 class spi;
 
 class PressureSensor {
