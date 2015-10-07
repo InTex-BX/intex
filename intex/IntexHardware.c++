@@ -316,6 +316,7 @@ static void set_attribute(const gpio::attribute attr, const int pin,
                           const T value) {
   using std::to_string;
   std::fstream file;
+  file.clear();
   sysfs_file(file, attr, pin, std::ios_base::out);
   file << to_string(value) << std::endl;
 }
