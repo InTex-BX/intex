@@ -778,9 +778,6 @@ public:
       return;
     }
 #ifdef BUILD_ON_RASPBERRY
-#ifdef SPIDEBUG
-    qDebug() << config;
-#endif
     int ret;
 
     uint32_t mode = config.mode();
@@ -794,9 +791,6 @@ public:
     if (ret == -1)
       throw_errno("Could not get SPI mode");
 
-#ifdef SPIDEBUG
-    qDebug() << "Read back SPI config:" << QString::number(mode, 16);
-#endif
     assert(mode == mode_);
 
     ret = ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &config.bpw);
@@ -808,9 +802,6 @@ public:
     if (ret == -1)
       throw_errno("Could not get SPI bits per word");
 
-#ifdef SPIDEBUG
-    qDebug() << "Read back SPI BPW: " << bpw;
-#endif
     assert(bpw == config.bpw);
 
     /* max speed Hz */
@@ -822,10 +813,6 @@ public:
     ret = ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &speed);
     if (ret == -1)
       throw_errno("Could not get SPI speed");
-
-#ifdef SPIDEBUG
-    qDebug() << "Set SPI speed from" << config.name << "to" << speed;
-#endif
 #endif
   }
 
@@ -866,9 +853,6 @@ public:
 
     if (config.no_cs)
       cs_pin.set(false);
-
-    qDebug() << "TX:" << tx;
-    qDebug() << "RX:" << rx;
 #endif
   }
 
@@ -905,10 +889,6 @@ public:
     if (ret < 1)
       throw_errno("Could not transfer SPI data");
 
-    QByteArray tx_(reinterpret_cast<char *>(tx), static_cast<int>(len));
-    qDebug() << "TTX:" << tx_;
-    QByteArray rx_(reinterpret_cast<char *>(rx), static_cast<int>(len));
-    qDebug() << "TRX:" << rx_;
     if (config.no_cs)
       cs_pin.set(false);
 #endif
