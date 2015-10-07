@@ -157,19 +157,11 @@ static constexpr auto Off = false;
 #pragma clang diagnostic ignored "-Wweak-vtables"
 class ExperimentControl::Impl : public QObject {
 #ifdef BUILD_ON_RASPBERRY
-#if 0
-  static constexpr auto ascend_timeout = 1000s;
+  static constexpr auto ascend_timeout = duration_cast<seconds>(1h + 49min);
   static constexpr auto burnwire_timeout = 30s;
-  static constexpr auto inflation_timeout = 570s;
-  static constexpr auto cure_timeout = 600s;
+  static constexpr auto inflation_timeout = 60s;
+  static constexpr auto cure_timeout = 540s;
   static constexpr auto equalization_timeout = 30s;
-#else
-  static constexpr auto ascend_timeout = 100s;
-  static constexpr auto burnwire_timeout = 30s;
-  static constexpr auto inflation_timeout = 57s;
-  static constexpr auto cure_timeout = 60s;
-  static constexpr auto equalization_timeout = 30s;
-#endif
 #else
   static constexpr auto ascend_timeout = 10s;
   static constexpr auto burnwire_timeout = 3s;
