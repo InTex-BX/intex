@@ -148,6 +148,15 @@ struct Control::Impl {
       qDebug() << vna_temp.getTimestamp() << vna_temp.getReading().getValue();
     }
 
+    auto box_temp = telemetry.getBoxTemperature();
+    if (box_temp.hasError()) {
+      qDebug() << box_temp.getError().getReason().cStr();
+    } else {
+      const auto temp = box_temp.getReading().getValue();
+      qDebug() << box_temp.getTimestamp() << temp;
+      intexWidget->setHubTemperature(temp);
+    }
+
     auto tank = telemetry.getTankPressure();
     if (tank.hasError()) {
       qDebug() << tank.getError().getReason().cStr();
