@@ -684,9 +684,10 @@ void ExperimentControl::Impl::change_state(enum state next_state) {
   case state::floating:
     setOutletValve(open);
     announceAction(AutoAction::INFLATE, 30s,
-                   [this] { change_state(state::burnwire); });
+                   [this] { change_state(state::measuring1); });
     break;
   case state::measuring1:
+    start_measurement([this] { change_state(state::burnwire); });
     break;
   case state::burnwire:
     setBurnwire(On);
@@ -703,7 +704,7 @@ void ExperimentControl::Impl::change_state(enum state next_state) {
   case state::measuring2:
     setOutletValve(closed);
     setTankValve(open);
-    QTimer::singleShot(0, [this] { change_state(state::curing); });
+    start_measurement([this] { change_state(state::curing); });
     break;
   case state::curing:
     connect(&timeout, &QTimer::timeout, this, &Impl::curing_timedout);
@@ -720,7 +721,7 @@ void ExperimentControl::Impl::change_state(enum state next_state) {
   case state::measuring3:
     setTankValve(closed);
     setOutletValve(open);
-    QTimer::singleShot(0, [this] { change_state(state::descending); });
+    start_measurement([this] { change_state(state::descending); });
     break;
   case state::descending:
     break;
@@ -803,7 +804,9 @@ void ExperimentControl::setBitrate(const InTexFeed feed,
   d_->setBitrate(feed, bitrate);
 }
 
-void ExperimentControl::measureAntenna() { d_->start_measurement(); };
+void ExperimentControl::measureAntenna() {
+  d_->start_measurement([] {});
+};
 }
 
 #include "ExperimentControl.moc"
