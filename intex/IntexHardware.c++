@@ -1,8 +1,3 @@
-#include <QDebug>
-#include <QTimer>
-#include <QString>
-#include <QFileInfo>
-
 #include <chrono>
 #include <iostream>
 #include <fstream>
@@ -23,6 +18,11 @@ extern "C" {
 #include <linux/spi/spidev.h>
 }
 #endif
+
+#include <QDebug>
+#include <QTimer>
+#include <QString>
+#include <QFileInfo>
 
 #include "IntexHardware.h"
 
@@ -83,23 +83,29 @@ static QDebug operator<<(QDebug os, const gpio &config) {
   return os;
 }
 
-static constexpr gpio heater0{19, "Heater (inner)", gpio::direction::out, false};
-static constexpr gpio heater1{26, "Heater (outer)", gpio::direction::out, false};
 static constexpr gpio valve_outlet{5, "Valve (outlet)", gpio::direction::out,
                                    false};
 static constexpr gpio valve_tank{6, "Valve (tank)", gpio::direction::out,
                                  false};
+static constexpr gpio heater0{19, "Heater (inner)", gpio::direction::out,
+                              false};
+static constexpr gpio heater1{26, "Heater (outer)", gpio::direction::out,
+                              false};
 static constexpr gpio burnwire{15, "Burnwire", gpio::direction::out, false};
 static constexpr gpio watchdog{21, "Watchdog", gpio::direction::out, false};
 static constexpr gpio mini_vna{20, "Mini VNA Supply", gpio::direction::out,
                                false};
 static constexpr gpio usb_hub{24, "Hub supply", gpio::direction::out, false};
+static constexpr gpio ads1248_cs{18, "Temperatur Sensor CS",
+                                 gpio::direction::out, true};
+static constexpr gpio ads1248_reset{23, "Temperatur Sensor Reset",
+                                    gpio::direction::out, true};
 
 static constexpr gpio pressure_atmospheric_cs{4, "Atmospheric Pressure CS",
                                               gpio::direction::out, true};
-static constexpr gpio pressure_antenna_cs{17, "Tank Pressure CS",
+static constexpr gpio pressure_antenna_cs{27, "Antenna Pressure CS",
                                           gpio::direction::out, true};
-static constexpr gpio pressure_tank_cs{27, "Antenna pressure CS",
+static constexpr gpio pressure_tank_cs{17, "Tank pressure CS",
                                        gpio::direction::out, true};
 
 struct spi {
