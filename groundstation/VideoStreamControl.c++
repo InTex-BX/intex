@@ -212,10 +212,12 @@ static auto make_audio_pipeline(const uint16_t port1, const uint16_t port2,
   s << make_audio(port1, leftLoc);
   s << make_audio(port2, rightLoc);
 
-  s << " interleave name=interleave ! osxaudiosink sync=false async=false ";
+  //s << " interleave name=interleave ! osxaudiosink sync=false async=false ";
 
-  s << " audio" << port1 << ". ! queue ! audioconvert ! interleave.";
-  s << " audio" << port2 << ". ! queue ! audioconvert ! interleave.";
+  //s << " audio" << port1 << ". ! queue ! audioconvert ! interleave.";
+  //s << " audio" << port2 << ". ! queue ! audioconvert ! interleave.";
+  s << " audio" << port1 << ". ! queue ! audioconvert ! osxaudiosink sync=false async=false";
+  s << " audio" << port2 << ". ! queue ! fakesink sync=false async=false";
 
   qDebug() << pipeline;
 
