@@ -75,7 +75,7 @@ static float vna_temperature() {
   }
 
   for (size_t i = 0; i < sizeof(buf);) {
-    if (vna.waitForReadyRead(20)) {
+    if (vna.waitForReadyRead(100)) {
       auto ret = vna.read(&buf[i], static_cast<qint64>(sizeof(buf) - i));
       if (ret < 0) {
         throw std::runtime_error(qPrintable("Error reading " + vna.portName() +
