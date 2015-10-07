@@ -634,7 +634,7 @@ public:
         feed, [bitrate](auto &&source) { source->setBitrate(bitrate); });
   }
 
-  void start_measurement() {
+  void start_measurement(std::function<void(void)> done) {
     if (nva.state() != QProcess::ProcessState::NotRunning) {
       qCritical() << "VNA measurement already running";
       return;
@@ -654,14 +654,15 @@ public:
     args << "/home/intex/vnaJ-hl.3.1.5.jar";
     nva.setArguments(args);
 
-    connect(
-        &nva, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(
-                  &QProcess::finished),
-        [this](const int exit_code, const QProcess::ExitStatus exit_status) {
-          qDebug() << "Measurement done" << exit_code << exit_status << ":";
-          qDebug() << nva.readAllStandardOutput();
-          intex::hw::MiniVNA::miniVNA().set(Off);
-        });
+    connect(&nva, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(
+                      &QProcess::finished),
+            [this, done](const int exit_code,
+                         const QProcess::ExitStatus exit_status) {
+              qDebug() << "Measurement done" << exit_code << exit_status << ":";
+              qDebug() << nva.readAllStandardOutput();
+              intex::hw::MiniVNA::miniVNA().set(Off);
+              done();
+            });
     nva.start();
   }
 };
