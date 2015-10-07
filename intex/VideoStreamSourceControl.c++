@@ -105,7 +105,7 @@ static QGst::PipelinePtr make_pipeline(const enum intex::Subsystem subsys,
     pipeline << " fixed-framerate=true";
     pipeline << " async-handling=true";
     pipeline << " message-forward=true";
-    // pipeline << " auto-start=true";
+    pipeline << " auto-start=true";
     pipeline << " initial-bitrate=5000000 peak-bitrate=5000000";
     pipeline << " average-bitrate=3000000 rate-control=vbr";
     pipeline << " mode=mode-video iframe-period=2000 ";
