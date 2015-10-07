@@ -15,6 +15,7 @@
 #include <QSizePolicy>
 #include <QLineEdit>
 #include <QIntValidator>
+#include <QStatusBar>
 #include <QHostAddress>
 #include <QUdpSocket>
 #include <QTimer>
@@ -113,6 +114,9 @@ struct Control::Impl {
   QFile telemetry_file;
   QFile log_file;
 
+  QLabel *cpuTemperatureLabel;
+  QLabel *vnaTemperatureLabel;
+
   void handle_log_datagram(QByteArray &buffer) {
     const auto written = log_file.write(buffer);
     if (written != buffer.size()) {
@@ -137,15 +141,18 @@ struct Control::Impl {
     if (cpu_temp.hasError()) {
       qDebug() << cpu_temp.getError().getReason().cStr();
     } else {
-      qDebug() << cpu_temp.getTimestamp() << cpu_temp.getReading().getValue();
+      const auto temp = cpu_temp.getReading().getValue();
+      qDebug() << cpu_temp.getTimestamp() << temp;
+      cpuTemperatureLabel->setText(QString("%1 °C").arg(temp));
     }
 
     auto vna_temp = telemetry.getVnaTemperature();
-
     if (vna_temp.hasError()) {
       qDebug() << vna_temp.getError().getReason().cStr();
     } else {
-      qDebug() << vna_temp.getTimestamp() << vna_temp.getReading().getValue();
+      const auto temp = vna_temp.getReading().getValue();
+      qDebug() << vna_temp.getTimestamp() << temp;
+      vnaTemperatureLabel->setText(QString("%1 °C").arg(temp));
     }
 
     auto box_temp = telemetry.getBoxTemperature();
@@ -241,7 +248,8 @@ struct Control::Impl {
         showNormal_(tr("Esc"), parent, SLOT(showNormal())),
         client(host.toStdString(), control_port),
         telemetry_file(storageLocation(intex::Subsystem::Telemetry)),
-        log_file(storageLocation(intex::Subsystem::Log)) {
+        log_file(storageLocation(intex::Subsystem::Log)),
+        cpuTemperatureLabel(new QLabel()), vnaTemperatureLabel(new QLabel()) {
     connect(&adapter, &intex::LogAdapter::log, intexWidget, &IntexWidget::log);
     qInstallMessageHandler(output);
 
@@ -625,6 +633,13 @@ Control::Control(QString host, const uint16_t control_port, const bool debug,
   centralLayout->addWidget(controlWidget);
   centralLayout->addWidget(flightWidget);
   centralLayout->addWidget(d_->intexWidget);
+
+  auto statusBar = new QStatusBar();
+  statusBar->addPermanentWidget(new QLabel("CPU Temperature:"));
+  statusBar->addPermanentWidget(d_->cpuTemperatureLabel);
+  statusBar->addPermanentWidget(new QLabel("VNA Temperature:"));
+  statusBar->addPermanentWidget(d_->vnaTemperatureLabel);
+  setStatusBar(statusBar);
 
   log_instance = d_->intexWidget;
 }
