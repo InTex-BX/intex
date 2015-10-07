@@ -40,14 +40,15 @@ struct Telemetry {
   boxTemperature @2 :Reading(Temperature);
   antennaInnerTemperature @3 :Reading(Temperature);
   antennaOuterTemperature @4 :Reading(Temperature);
-  tankPressure @5 :Reading(Temperature);
-  antennaPressure @6 :Reading(Temperature);
-  atmosphericPressure @7 :Reading(Temperature);
-  innerHeater @8 :Reading(Status);
-  outerHeater @9 :Reading(Status);
-  tankValve @10 :Reading(Status);
-  outletValve @11 :Reading(Status);
-  burnwire @12 :Reading(Status);
+  atmosphereTemperature @5 :Reading(Temperature);
+  tankPressure @6 :Reading(Temperature);
+  antennaPressure @7 :Reading(Temperature);
+  atmosphericPressure @8 :Reading(Temperature);
+  innerHeater @9 :Reading(Status);
+  outerHeater @10 :Reading(Status);
+  tankValve @11 :Reading(Status);
+  outletValve @12 :Reading(Status);
+  burnwire @13 :Reading(Status);
 }
 
 enum AutoAction {
