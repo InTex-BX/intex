@@ -243,6 +243,23 @@ class ExperimentControl::Impl : public QObject {
 
   static bool nvramFile(QFile &file) {
 #ifdef BUILD_ON_RASBERRY
+    QDir sysfs("/sys/bus/i2c/devices");
+    for (const auto &entry :
+         sysfs.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::System)) {
+      if (!sysfs.cd(entry)) {
+        qCritical() << "Could not enter directory" << entry;
+        continue;
+      }
+
+      file.setFileName(sysfs.absoluteFilePath("nvram"));
+      if (file.exists() && file.open(QIODevice::ReadWrite)) {
+        return true;
+      }
+
+      qDebug() << "File" << file.fileName()
+               << "does not exist or cannot be opened.";
+      sysfs.cdUp();
+    }
     QDir nvram;
     return false;
 #else
