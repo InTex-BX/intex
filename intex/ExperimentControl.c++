@@ -54,7 +54,6 @@ static float vna_temperature() {
   static constexpr qint32 baudrate = 921600;
   static const char read_temperature_command[] = "10\r";
   char buf[2];
-  // TODO turn on VNA
 
   QSerialPort vna("/dev/ttyUSB0");
   if (!vna.open(QIODevice::ReadWrite)) {
@@ -99,7 +98,6 @@ static double hub_temperature() {
   QDir sysfs("/sys/bus/w1/devices");
   for (const auto &entry :
        sysfs.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::System)) {
-    qDebug() << "W1 slave:" << entry;
     if (!sysfs.cd(entry)) {
       qCritical() << "Could not enter directory" << entry;
       continue;
@@ -107,8 +105,8 @@ static double hub_temperature() {
 
     QFile data(sysfs.absoluteFilePath("w1_slave"));
     if (!data.open(QIODevice::ReadOnly)) {
-      qCritical() << "Could not open file" << data.fileName()
-                  << "for reading";
+      qCritical() << "Could not open file" << data.fileName() << "for reading";
+      sysfs.cdUp();
       continue;
     }
 
@@ -492,7 +490,6 @@ class ExperimentControl::Impl : public QObject {
     tank.setTimestamp(system_clock::now().time_since_epoch().count());
     try {
       auto pressure = hw::PressureSensor::tank().pressure();
-      qDebug() << "Tank pressure:" << pressure;
       tank.initReading().setValue(pressure);
     } catch (const std::runtime_error &e) {
       tank.initError().setReason(e.what());
@@ -502,7 +499,6 @@ class ExperimentControl::Impl : public QObject {
     antenna.setTimestamp(system_clock::now().time_since_epoch().count());
     try {
       auto pressure = hw::PressureSensor::antenna().pressure();
-      qDebug() << "Antenna pressure:" << pressure;
       antenna.initReading().setValue(pressure);
     } catch (const std::runtime_error &e) {
       antenna.initError().setReason(e.what());
@@ -512,7 +508,6 @@ class ExperimentControl::Impl : public QObject {
     atmosphere.setTimestamp(system_clock::now().time_since_epoch().count());
     try {
       auto pressure = hw::PressureSensor::atmosphere().pressure();
-      qDebug() << "Atmosphere pressure:" << pressure;
       atmosphere.initReading().setValue(pressure);
     } catch (const std::runtime_error &e) {
       atmosphere.initError().setReason(e.what());
@@ -587,6 +582,7 @@ public:
         intex::Subsystem::Video0, intex::Subsystem::Audio0, host, 5000);
     source1 = std::make_unique<VideoStreamSourceControl>(
         intex::Subsystem::Video1, intex::Subsystem::Audio1, host, 5010);
+    qDebug() << "Ascend timeout:" << ascend_timeout.count() << "s";
   }
   ~Impl() noexcept {}
 
