@@ -540,7 +540,7 @@ public:
     setMiniVNA(Off);
     setBurnwire(Off);
     setInnerHeater(On);
-    setInnerHeater(On);
+    setOuterHeater(On);
     setTankValve(Off);
     setOutletValve(Off);
     intex::hw::Watchdog::watchdog();
