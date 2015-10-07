@@ -526,6 +526,7 @@ struct IntexWidget::Impl {
   QLabel *antennaInnerTemperatureLabel;
   QLabel *antennaOuterTemperatureLabel;
   QLabel *atmosphereTemperatureLabel;
+  QLabel *hubTemperatureLabel;
 
   Impl(QWidget *parent = nullptr)
       : log(new QPlainTextEdit(parent)), valve1(new ElectricValve(parent)),
@@ -535,7 +536,8 @@ struct IntexWidget::Impl {
         atmospherePressureLabel(new QLabel("42 mBar")),
         antennaInnerTemperatureLabel(new QLabel("37 °C")),
         antennaOuterTemperatureLabel(new QLabel("35 °C")),
-        atmosphereTemperatureLabel(new QLabel("-20 °C")) {
+        atmosphereTemperatureLabel(new QLabel("-20 °C")),
+        hubTemperatureLabel(new QLabel("36 °C")) {
     log->setReadOnly(true);
     log->setCenterOnScroll(true);
   }
@@ -576,7 +578,7 @@ IntexWidget::IntexWidget(QWidget *parent)
   auto internalInfo = new QWidget;
   auto internalInfoLayout = new QFormLayout(internalInfo);
   internalInfoLayout->addRow("Pressure:", d->tankPressureLabel);
-  internalInfoLayout->addRow("Temperature:", new QLabel("36.0 °C"));
+  internalInfoLayout->addRow("Temperature:", d->hubTemperatureLabel);
 
   auto externalInfo = new QWidget;
   auto externalInfoLayout = new QFormLayout(externalInfo);
@@ -639,6 +641,9 @@ void IntexWidget::setAntennaOuterTemperature(const double temperature) {
 }
 void IntexWidget::setAtmosphereTemperature(const double temperature) {
   d->atmosphereTemperatureLabel->setText(QString("%1 °C").arg(temperature));
+}
+void IntexWidget::setHubTemperature(const double temperature) {
+  d->hubTemperatureLabel->setText(QString("%1 °C").arg(temperature));
 }
 
 void IntexWidget::setConnected(bool connected) {

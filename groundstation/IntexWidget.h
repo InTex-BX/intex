@@ -23,6 +23,7 @@ public:
   void setAntennaInnerTemperature(const double temperature);
   void setAntennaOuterTemperature(const double temperature);
   void setAtmosphereTemperature(const double temperature);
+  void setHubTemperature(const double temperature);
 
 public Q_SLOTS:
   void setConnected(bool connected);
