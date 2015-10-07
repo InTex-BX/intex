@@ -83,10 +83,12 @@ static QDebug operator<<(QDebug os, const gpio &config) {
   return os;
 }
 
-static constexpr gpio valve0{6, "Valve (outlet)", gpio::direction::out, false};
-static constexpr gpio valve1{5, "Valve (tank)", gpio::direction::out, false};
 static constexpr gpio heater0{19, "Heater (inner)", gpio::direction::out, false};
 static constexpr gpio heater1{26, "Heater (outer)", gpio::direction::out, false};
+static constexpr gpio valve_outlet{5, "Valve (outlet)", gpio::direction::out,
+                                   false};
+static constexpr gpio valve_tank{6, "Valve (tank)", gpio::direction::out,
+                                 false};
 static constexpr gpio burnwire{15, "Burnwire", gpio::direction::out, false};
 static constexpr gpio watchdog{21, "Watchdog", gpio::direction::out, false};
 static constexpr gpio mini_vna{20, "Mini VNA Supply", gpio::direction::out,
@@ -509,12 +511,14 @@ void Valve::set(const bool state) { d->set(state); }
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
 Valve &Valve::pressureTankValve() {
-  static std::unique_ptr<Valve> instance{new Valve(intex::hw::config::valve0)};
+  static std::unique_ptr<Valve> instance{
+      new Valve(intex::hw::config::valve_tank)};
   return *instance;
 }
 
 Valve &Valve::outletValve() {
-  static std::unique_ptr<Valve> instance{new Valve(intex::hw::config::valve1)};
+  static std::unique_ptr<Valve> instance{
+      new Valve(intex::hw::config::valve_outlet)};
   return *instance;
 }
 #pragma clang diagnostic pop
