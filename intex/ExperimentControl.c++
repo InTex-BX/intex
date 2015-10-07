@@ -449,23 +449,44 @@ class ExperimentControl::Impl : public QObject {
       hub_temp.initError().setReason(e.what());
     }
 
-    try {
 #if 0
-    qDebug() << "InnerRing:"
-             << hw::TemperatureSensor::temperatureSensor().temperature(
-                    hw::TemperatureSensor::Sensor::InnerRing);
-    qDebug() << "OuterRing:"
-             << hw::TemperatureSensor::temperatureSensor().temperature(
-                    hw::TemperatureSensor::Sensor::OuterRing);
-    qDebug() << "Atmosphere:"
-             << hw::TemperatureSensor::temperatureSensor().temperature(
-                    hw::TemperatureSensor::Sensor::Atmosphere);
-#else
-// hw::ADS1248::sensor().selftest(1);
-#endif
+    auto atmosphere_temp = telemetry.initAtmosphereTemperature();
+    atmosphere_temp.setTimestamp(
+        system_clock::now().time_since_epoch().count());
+    try {
+      const auto t1 = hw::TemperatureSensor::temperatureSensor().temperature(
+          hw::TemperatureSensor::Sensor::InnerRing);
+      const auto temp = hw::ADS1248::sensor().selftest(0);
+      qDebug() << "Atmospheric temperature:" << temp << t1;
+      atmosphere_temp.initReading().setValue(temp);
     } catch (const std::runtime_error &e) {
-      qCritical() << e.what();
+      atmosphere_temp.initError().setReason(e.what());
     }
+
+    auto inner_temp = telemetry.initAntennaInnerTemperature();
+    inner_temp.setTimestamp(system_clock::now().time_since_epoch().count());
+    try {
+      const auto temp = hw::ADS1248::sensor().selftest(1);
+      inner_temp.initReading().setValue(temp);
+      intex::hw::Heater::innerHeater().temperatureChanged(
+          static_cast<int>(temp));
+      qDebug() << "Inner temperature:" << temp;
+    } catch (const std::runtime_error &e) {
+      inner_temp.initError().setReason(e.what());
+    }
+
+    auto outer_temp = telemetry.initAntennaOuterTemperature();
+    outer_temp.setTimestamp(system_clock::now().time_since_epoch().count());
+    try {
+      const auto temp = hw::ADS1248::sensor().selftest(2);
+      outer_temp.initReading().setValue(temp);
+      qDebug() << "Outer temperature:" << temp;
+      intex::hw::Heater::outerHeater().temperatureChanged(
+          static_cast<int>(temp));
+    } catch (const std::runtime_error &e) {
+      outer_temp.initError().setReason(e.what());
+    }
+#endif
 
     auto tank = telemetry.initTankPressure();
     tank.setTimestamp(system_clock::now().time_since_epoch().count());
