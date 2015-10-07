@@ -385,6 +385,11 @@ class ExperimentControl::Impl : public QObject {
     if (reply.isAccept()) {
       handle_auto_timeout();
     } else {
+      if (announce_reply_outstanding) {
+        announce_reply_outstanding = false;
+        qDebug() << "Auto request cancelled";
+        timeout.disconnect();
+      }
       qDebug() << "Action cancelled";
     }
   }
