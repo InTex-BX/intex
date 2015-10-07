@@ -155,6 +155,33 @@ struct Control::Impl {
       vnaTemperatureLabel->setText(QString("%1 °C").arg(temp));
     }
 
+    auto inner_temp = telemetry.getAntennaInnerTemperature();
+    if (inner_temp.hasError()) {
+      qDebug() << inner_temp.getError().getReason().cStr();
+    } else {
+      const auto temp = inner_temp.getReading().getValue();
+      qDebug() << inner_temp.getTimestamp() << temp;
+      intexWidget->setAntennaInnerTemperature(temp);
+    }
+
+    auto outer_temp = telemetry.getAntennaOuterTemperature();
+    if (outer_temp.hasError()) {
+      qDebug() << outer_temp.getError().getReason().cStr();
+    } else {
+      const auto temp = outer_temp.getReading().getValue();
+      qDebug() << outer_temp.getTimestamp() << temp;
+      intexWidget->setAntennaOuterTemperature(temp);
+    }
+
+    auto atmosphere_temp = telemetry.getAntennaInnerTemperature();
+    if (atmosphere_temp.hasError()) {
+      qDebug() << atmosphere_temp.getError().getReason().cStr();
+    } else {
+      const auto temp = atmosphere_temp.getReading().getValue();
+      qDebug() << atmosphere_temp.getTimestamp() << temp;
+      intexWidget->setAtmosphereTemperature(temp);
+    }
+
     auto box_temp = telemetry.getBoxTemperature();
     if (box_temp.hasError()) {
       qDebug() << box_temp.getError().getReason().cStr();
