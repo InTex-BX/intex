@@ -25,3 +25,5 @@ target_link_libraries(control
 
 qt5_use_modules(control Network)
 
+add_executable(telemetry-extract telemetry-extract.c++)
+target_link_libraries(telemetry-extract ${Boost_LIBRARIES} ${CAPNP_LIBRARIES} intex_rpc)
