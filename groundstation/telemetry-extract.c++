@@ -159,10 +159,6 @@ int main(int argc, char *argv[]) {
     std::cout << "You can only specify millisecond or microsecond timestamps."
               << std::endl;
     return EXIT_FAILURE;
-  } else if (vm.count("microseconds")) {
-    divisor *= 1'000;
-  } else if (vm.count("milliseconds")) {
-    divisor *= 1'000'000;
   }
 
   const std::string fname = vm["input-file"].as<std::string>();
@@ -173,7 +169,18 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
-  std::cout << "# time[ns] ";
+  std::cout << "# time[";
+  if (vm.count("microseconds")) {
+    divisor *= 1'000;
+    std::cout << "us";
+  } else if (vm.count("milliseconds")) {
+    divisor *= 1'000'000;
+    std::cout << "ms";
+  } else {
+    std::cout << "ns";
+  }
+  std::cout << "] ";
+
   if (vm.count("pressure"))
     std::cout << vm["pressure"].as<pressure>();
   if (vm.count("temperature"))
